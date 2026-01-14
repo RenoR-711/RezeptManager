@@ -229,7 +229,7 @@ const categories = CATEGORIES.map(c => c.name);
                                         type="text"
                                         value={row.amount}
                                         onChange={(e) =>
-                                            updateIngredientRow(idx, "amount", e.target.value)
+                                            updateIngredientRow(row.id, "amount", e.target.value)
                                         }
                                         style={{ width: "70px" }}
                                     />
@@ -239,13 +239,13 @@ const categories = CATEGORIES.map(c => c.name);
                                         type="text"
                                         value={row.name}
                                         onChange={(e) =>
-                                            updateIngredientRow(idx, "name", e.target.value)
+                                            updateIngredientRow(row.id, "name", e.target.value)
                                         }
                                         style={{ width: "100%" }}
                                     />
                                 </td>
                                 <td>
-                                    <button onClick={() => removeIngredientRow(idx)}>
+                                    <button onClick={() => removeIngredientRow(row.id)}>
                                         🗑️
                                     </button>
                                 </td>

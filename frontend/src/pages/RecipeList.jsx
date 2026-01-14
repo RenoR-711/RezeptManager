@@ -340,7 +340,7 @@ export default function RecipeList() {
                     .then((data) => setRecipes(data.map(normalizeRecipe)))
             );
     }
-
+/* ---------------- UI ---------------- */
     return (
         <div className="page">
             <h2>Rezepte</h2>

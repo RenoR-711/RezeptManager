@@ -278,3 +278,7 @@ The connection was not closed by the application and is garbage collected [90018
 	at org.h2.message.DbException.getJdbcSQLException(DbException.java:690)
 	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
 	... 16 more
+2026-01-14 09:40:08.297448+01:00 jdbc[32]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabelle "TEST" nicht gefunden
+Table "TEST" not found; SQL statement:
+SELECT * FROM TEST ORDER BY ID [42102-232]
