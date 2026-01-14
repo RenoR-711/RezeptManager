@@ -10,6 +10,7 @@ D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backen
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\repo\CategoryRepository.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\repo\RecipeRepository.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\BarcodeService.java
+D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\ImageService.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\IngredientParserService.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\OcrService.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\PdfExportService.java
