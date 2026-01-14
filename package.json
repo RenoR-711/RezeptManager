@@ -1,0 +1,12 @@
+{
+  "name": "rezeptmanager",
+  "private": true,
+  "scripts": {
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && mvn spring-boot:run",
+    "start:all": "concurrently \"npm run frontend\" \"npm run backend\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

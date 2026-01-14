@@ -1,0 +1,85 @@
+.navbar {
+    background-color: #222;
+    color: #fff;
+}
+
+.navbar__inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0.5rem 1rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.navbar__brand {
+    font-weight: bold;
+    text-decoration: none;
+    color: #fff;
+}
+
+/* Burger-Button standardmäßig verstecken (nur auf Mobile anzeigen) */
+.navbar__toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    color: #fff;
+    cursor: pointer;
+}
+
+/* Links im Desktop-Modus im Row-Layout */
+.navbar__links {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.navbar__link {
+    padding: 0.35rem 0.75rem;
+    text-decoration: none;
+    color: #fff;
+    border-radius: 4px;
+}
+
+.navbar__link.active {
+    background-color: #444;
+}
+
+/* --- Mobile Styles --- */
+@media (max-width: 640px) {
+    .navbar__inner {
+        align-items: center;
+    }
+
+    /* Burger anzeigen */
+    .navbar__toggle {
+        display: block;
+    }
+
+    /* Links standardmäßig verstecken */
+  .navbar__links {
+    display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 56px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #222;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        width: auto;
+        min-width: 180px;
+        text-align: center;
+    }
+
+    /* Wenn geöffnet, anzeigen */
+    .navbar__links.navbar__links--open {
+        display: flex;
+    }
+
+    .navbar__link {
+width: auto;
+    }
+}
