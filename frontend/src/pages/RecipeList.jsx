@@ -127,7 +127,6 @@ function RecipeCard({
     onDelete = () => {},
     badgeColors = {},
 }) {
-    const imageUrl = getImageForRecipe(recipe);
 
     RecipeCard.propTypes = {
     recipe: PropTypes.object.isRequired,

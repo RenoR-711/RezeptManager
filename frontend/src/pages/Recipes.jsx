@@ -129,7 +129,7 @@ export default function Recipes() {
                 <div style={{ marginBottom: "1rem" }}>
                     <label>
                         Rezeptbild:
-                        <input
+                        <input 
                             type="file"
                             accept="image/*"
                             onChange={handleImageUpload}
