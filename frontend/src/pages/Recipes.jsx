@@ -4,33 +4,32 @@ import PropTypes from "prop-types";
 import { CATEGORIES } from "../data/categories";
 
 /* -------------------------------------------------------------
-   Hilfsfunktionen
+   Helper
 ------------------------------------------------------------- */
+
 function getCategoryLabel(c) {
     return typeof c === "string" ? c : c?.name ?? "";
 }
 
+/**
+ * Single source of truth: recipe.imageUrl (DB)
+ * - If absolute: use as-is
+ * - If relative ("/images/..."): prefix backend host
+ * - UI safety fallback: placeholder with title (should rarely happen if backend guarantees imageUrl)
+ */
 function getRecipeImageUrl(recipe) {
-    // 1) Neues Feld aus Upload/Scan/Edit (z.B. "/images/xyz.jpg" oder volle URL)
-    if (recipe?.imageUrl) {
-        return recipe.imageUrl.startsWith("http")
-            ? recipe.imageUrl
-            : `http://localhost:8081${recipe.imageUrl}`;
+    const url = recipe?.imageUrl?.trim();
+    if (url) {
+        return url.startsWith("http") ? url : `http://localhost:8081${url}`;
     }
-
-    // 2) Altes Feld aus deinem bisherigen Upload-System
-    if (recipe?.sourceFile) {
-        return `http://localhost:8081/uploads/${recipe.sourceFile}`;
-    }
-
-    // 3) Dummy / Placeholder
     const encoded = encodeURIComponent(recipe?.title || "Rezept");
     return `https://placehold.co/800x500?text=${encoded}`;
 }
 
 /* -------------------------------------------------------------
-   Ausgelagerte Komponente
+   Components
 ------------------------------------------------------------- */
+
 function CategoryBadge({ category, color }) {
     const navigate = useNavigate();
     const label = getCategoryLabel(category);
@@ -71,14 +70,16 @@ CategoryBadge.propTypes = {
 };
 
 /* -------------------------------------------------------------
-   Hauptkomponente
+   Page
 ------------------------------------------------------------- */
+
 export default function Recipes() {
     const { id } = useParams();
     const navigate = useNavigate();
 
     const [recipe, setRecipe] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
     const [error, setError] = useState(null);
 
     const badgeColors = useMemo(
@@ -97,7 +98,6 @@ export default function Recipes() {
                 const res = await fetch(`http://localhost:8081/api/recipes/${id}`);
                 if (!res.ok) throw new Error("Rezept konnte nicht geladen werden.");
                 const data = await res.json();
-
                 if (isMounted) setRecipe(data);
             } catch (e) {
                 if (isMounted) {
@@ -133,61 +133,72 @@ export default function Recipes() {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        setUploading(true);
+
         const formData = new FormData();
         formData.append("file", file);
 
         try {
-            // 1) Upload
+            // 1) Upload -> TEXT: "/images/xyz.jpg"
             const uploadRes = await fetch("http://localhost:8081/api/uploads/image", {
                 method: "POST",
                 body: formData,
             });
 
-            if (!uploadRes.ok) throw new Error("Upload fehlgeschlagen");
-
-            // 2) Antwort robust parsen (JSON ODER Text)
-            const contentType = uploadRes.headers.get("content-type") || "";
-            let imageUrl;
-
-            if (contentType.includes("application/json")) {
-                const data = await uploadRes.json();
-                imageUrl =
-                    data.imageUrl ?? data.url ?? data.path ?? data.location ?? "";
-            } else {
-                imageUrl = (await uploadRes.text()).trim();
+            if (!uploadRes.ok) {
+                const msg = await uploadRes.text().catch(() => "");
+                throw new Error(msg || "Upload fehlgeschlagen");
             }
 
-            if (!imageUrl) throw new Error("Upload ok, aber keine Bild-URL erhalten.");
+            const imageUrl = (await uploadRes.text()).trim();
+            if (!imageUrl) throw new Error("Upload lieferte keine imageUrl");
 
-            // 3) URL normalisieren (führender Slash)
-            if (!imageUrl.startsWith("http") && !imageUrl.startsWith("/")) {
-                imageUrl = `/${imageUrl}`;
-            }
+            // 2) Payload aus dem AKTUELLEN State bauen (kein stale closure)
+            let payload = null;
 
-            // 4) UI sofort updaten (damit du sofort siehst ob src stimmt)
-            setRecipe((prev) => (prev ? { ...prev, imageUrl } : prev));
+            setRecipe((prev) => {
+                const next = { ...prev, imageUrl };
 
-            // 5) In DB speichern (PUT) - minimaler Payload (falls Backend das akzeptiert)
-            const recipeId = recipe?.id;
-            const saveRes = await fetch(`http://localhost:8081/api/recipes/${recipeId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...recipe, imageUrl }),
+                payload = {
+                    id: next.id,
+                    title: next.title,
+                    description: next.description,
+                    ingredients: next.ingredients,
+                    rawText: next.rawText,
+                    imageUrl: next.imageUrl,
+                    categories: (next.categories ?? []).map((c) => ({
+                        name: typeof c === "string" ? c : c?.name,
+                    })),
+                };
+
+                return next;
             });
 
-            if (!saveRes.ok) throw new Error("Bild konnte nicht gespeichert werden (PUT).");
+            if (!payload?.id) throw new Error("Rezept-ID fehlt – kann nicht speichern.");
 
-            // 6) Frisch laden (wichtig: wenn Backend Felder normalisiert)
-            const updated = await saveRes.json();
+            // 3) Persistieren in DB via PUT
+            const putRes = await fetch(`http://localhost:8081/api/recipes/${payload.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (!putRes.ok) {
+                const msg = await putRes.text().catch(() => "");
+                throw new Error(msg || "Bild konnte nicht gespeichert werden (PUT).");
+            }
+
+            // 4) Backend-Stand übernehmen (damit Hauptbild + DB 100% synchron sind)
+            const updated = await putRes.json();
             setRecipe(updated);
         } catch (err) {
             console.error(err);
-            globalThis.alert(err?.message || "Bild-Upload fehlgeschlagen");
+            alert(err.message || "Bild-Upload fehlgeschlagen");
         } finally {
-            e.target.value = "";
+            setUploading(false);
+            e.target.value = ""; // erlaubt erneut dieselbe Datei zu wählen
         }
     }
-
 
     if (loading) return <div className="loader">Rezept wird geladen…</div>;
     if (error) return <p style={{ color: "crimson" }}>{error}</p>;
@@ -232,11 +243,7 @@ export default function Recipes() {
                         {(recipe.categories ?? []).map((c) => {
                             const label = getCategoryLabel(c);
                             return (
-                                <CategoryBadge
-                                    key={label}
-                                    category={c}
-                                    color={badgeColors[label]}
-                                />
+                                <CategoryBadge key={label} category={c} color={badgeColors[label]} />
                             );
                         })}
                     </div>
@@ -248,9 +255,12 @@ export default function Recipes() {
                             type="file"
                             accept="image/*"
                             onChange={handleImageUpload}
+                            disabled={uploading}
                             style={{ display: "block", marginTop: "0.5rem" }}
                         />
                     </label>
+
+                    {uploading && <p style={{ marginTop: "0.5rem" }}>Bild wird hochgeladen…</p>}
                 </div>
 
                 {/* Zutaten */}
@@ -298,10 +308,7 @@ export default function Recipes() {
                     className="btn secondary"
                     type="button"
                     onClick={() =>
-                        globalThis.open(
-                            `http://localhost:8081/api/recipes/${id}/pdf`,
-                            "_blank"
-                        )
+                        globalThis.open(`http://localhost:8081/api/recipes/${id}/pdf`, "_blank")
                     }
                 >
                     PDF
