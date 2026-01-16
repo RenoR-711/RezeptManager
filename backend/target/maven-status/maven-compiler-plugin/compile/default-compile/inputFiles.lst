@@ -6,6 +6,7 @@ D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backen
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\dto\ParsedRecipe.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\dto\ProductData.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\model\Category.java
+D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\model\DifficultyLevel.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\model\Recipe.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\repo\CategoryRepository.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\repo\RecipeRepository.java

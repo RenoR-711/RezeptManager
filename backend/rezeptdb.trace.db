@@ -282,3 +282,23 @@ The connection was not closed by the application and is garbage collected [90018
 org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabelle "TEST" nicht gefunden
 Table "TEST" not found; SQL statement:
 SELECT * FROM TEST ORDER BY ID [42102-232]
+2026-01-14 15:16:11.330617+01:00 jdbc[96]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax Fehler in SQL Befehl "[*]IMAGE_URL"; erwartet "INSERT"
+Syntax error in SQL statement "[*]IMAGE_URL"; expected "INSERT"; SQL statement:
+IMAGE_URL [42001-232]
+2026-01-15 12:50:18.139197+01:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax Fehler in SQL Befehl "SELECT * FROM RECIPE  BY [*]ID"
+Syntax error in SQL statement "SELECT * FROM RECIPE  BY [*]ID"; SQL statement:
+SELECT * FROM RECIPE  BY ID [42000-232]
+2026-01-15 12:57:35.918374+01:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Wert zu groß / lang für Feld "DESCRIPTION CHARACTER VARYING(5000)": "U&'Zutaten f\\00fcr  8 Portionen\\000a\\000aDie Gans au\\00dfen und innen waschen un... (5618)"
+Value too long for column "DESCRIPTION CHARACTER VARYING(5000)": "U&'Zutaten f\\00fcr  8 Portionen\\000a\\000aDie Gans au\\00dfen und innen waschen un... (5618)"; SQL statement:
+insert into recipe (created_at,description,image_path,image_url,ingredients,raw_text,source_file,title,updated_at,id) values (?,?,?,?,?,?,?,?,?,default) [22001-232]
+2026-01-15 12:58:15.124080+01:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Wert zu groß / lang für Feld "DESCRIPTION CHARACTER VARYING(5000)": "U&'Zutaten f\\00fcr  8 Portionen\\000a\\000aDie Gans au\\00dfen und innen waschen un... (5618)"
+Value too long for column "DESCRIPTION CHARACTER VARYING(5000)": "U&'Zutaten f\\00fcr  8 Portionen\\000a\\000aDie Gans au\\00dfen und innen waschen un... (5618)"; SQL statement:
+insert into recipe (created_at,description,image_path,image_url,ingredients,raw_text,source_file,title,updated_at,id) values (?,?,?,?,?,?,?,?,?,default) [22001-232]
+2026-01-15 12:58:20.995822+01:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLDataException: Wert zu groß / lang für Feld "DESCRIPTION CHARACTER VARYING(5000)": "U&'Zutaten f\\00fcr  8 Portionen\\000a\\000aDie Gans au\\00dfen und innen waschen un... (5618)"
+Value too long for column "DESCRIPTION CHARACTER VARYING(5000)": "U&'Zutaten f\\00fcr  8 Portionen\\000a\\000aDie Gans au\\00dfen und innen waschen un... (5618)"; SQL statement:
+insert into recipe (created_at,description,image_path,image_url,ingredients,raw_text,source_file,title,updated_at,id) values (?,?,?,?,?,?,?,?,?,default) [22001-232]

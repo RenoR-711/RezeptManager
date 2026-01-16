@@ -44,6 +44,17 @@ public class Recipe {
     @JoinTable(name = "recipe_categories", joinColumns = @JoinColumn(name = "recipe_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
     private Set<Category> categories = new HashSet<>();
 
+    @Enumerated(EnumType.STRING)
+    private DifficultyLevel difficultyLevel;
+    private Integer protein; // in grams
+    private Integer carbohydrates; // in grams
+    private Integer fats; // in grams
+    private Integer calories;
+    private Integer rating; // 1 to 5
+    private Integer preparationTime; // in minutes
+    private Integer cookingTime; // in minutes
+    private Integer servings;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -52,5 +63,5 @@ public class Recipe {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    private String imageUrl;    
+    private String imageUrl;
 }

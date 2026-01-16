@@ -169,7 +169,13 @@ export default function Recipes() {
                 description: recipe.description,
                 ingredients: recipe.ingredients,
                 rawText: recipe.rawText,
-                imageUrl, // ✅ das muss in die DB
+                difficultyLevel: "EASY",
+                preparationTime: recipe.preparationTime,
+                portions: recipe.portions,
+                protein: recipe.protein,
+                carbohydrates: recipe.carbohydrates,
+                fats: recipe.fats,
+                imageUrl: imageUrl,
                 categories: (recipe.categories ?? []).map((c) => ({
                     name: typeof c === "string" ? c : c?.name,
                 })),
@@ -291,6 +297,23 @@ export default function Recipes() {
                     ))}
             </section>
 
+            {/* Schwierigkeitsgrad */}
+            <div className="recipe-difficulty">
+                <h4 style={{ textAlign: "left" }}>Schwierigkeitsgrad</h4>
+                <p>{recipe.difficultyLevel?.getLabel()}</p>
+            </div>
+
+            <div style={{ textAlign: "left" }} className="recipe-nutrition">
+                Brennwert (pro 100g):
+                <ul>
+                    <li>Protein: {recipe.protein} g</li>
+                    <li>Kohlenhydrate: {recipe.carbohydrates} g</li>
+                    <li>Fette: {recipe.fats} g</li>
+                </ul>
+                Zubereitungszeit: {recipe.preparationTime} Minuten<br />
+                Portionen: {recipe.portions} <br />
+            </div>
+            
             {/* Aktionen */}
             <footer className="recipe-actions">
                 <button
