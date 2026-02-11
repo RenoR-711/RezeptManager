@@ -1,14 +1,15 @@
 package com.rezeptmanager.backend.controller;
 
-import com.rezeptmanager.backend.model.Recipe;
 import com.rezeptmanager.backend.model.Category;
+import com.rezeptmanager.backend.model.Recipe;
 import com.rezeptmanager.backend.repo.CategoryRepository;
 import com.rezeptmanager.backend.repo.RecipeRepository;
-import com.rezeptmanager.backend.service.ImageService;
+import com.rezeptmanager.backend.service.ImageStorageService;
 import com.rezeptmanager.backend.service.PdfExportService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Set;
@@ -22,16 +23,17 @@ public class RecipeController {
         private final RecipeRepository repo;
         private final CategoryRepository categoryRepo;
         private final PdfExportService pdfExportService;
-        private final ImageService imageService;
+        private final ImageStorageService imageStorageService;
 
-        public RecipeController(RecipeRepository repo,
+        public RecipeController(
+                        RecipeRepository repo,
                         CategoryRepository categoryRepo,
                         PdfExportService pdfExportService,
-                        ImageService imageService) {
+                        ImageStorageService imageStorageService) {
                 this.repo = repo;
                 this.categoryRepo = categoryRepo;
                 this.pdfExportService = pdfExportService;
-                this.imageService = imageService;
+                this.imageStorageService = imageStorageService;
         }
 
         // -------------------------------------------------------------
@@ -56,23 +58,15 @@ public class RecipeController {
         @PostMapping
         public Recipe create(@RequestBody Recipe r) {
 
-                // Kategorien auflösen
-                Set<Category> resolvedCategories = r.getCategories().stream()
+                Set<Category> resolvedCategories = (r.getCategories() == null ? Set.<Category>of() : r.getCategories())
+                                .stream()
                                 .map(cat -> categoryRepo.findByName(cat.getName())
-                                                .orElseGet(() -> categoryRepo.save(
-                                                                new Category(cat.getName()))))
+                                                .orElseGet(() -> categoryRepo.save(new Category(cat.getName()))))
                                 .collect(Collectors.toSet());
 
                 r.setCategories(resolvedCategories);
 
                 // BILD-LOGIK (zentral, ausgelagert)
-                r.setImageUrl(
-                                imageService.resolveImageUrl(
-                                                r.getTitle(),
-                                                r.getImageUrl(),
-                                                null // noch keine ID beim Create
-                                ));
-
                 return repo.save(r);
         }
 
@@ -88,14 +82,18 @@ public class RecipeController {
                 existing.setDescription(r.getDescription());
                 existing.setIngredients(r.getIngredients());
                 existing.setRawText(r.getRawText());
+                existing.setDifficultyLevel(r.getDifficultyLevel());
+                existing.setPreparationTime(r.getPreparationTime());
+                existing.setCookingTime(r.getCookingTime());
+                existing.setServings(r.getServings());
+                existing.setCalories(r.getCalories());
+                existing.setCarbohydrates(r.getCarbohydrates());
+                existing.setFats(r.getFats());
+                existing.setProtein(r.getProtein());
+                existing.setRating(r.getRating());
 
                 // imageUrl übernehmen + (optional) serverseitig absichern
-                existing.setImageUrl(
-                                imageService.resolveImageUrl(
-                                                r.getTitle(),
-                                                r.getImageUrl(), // kommt aus deinem Upload
-                                                id // stabiler Seed
-                                ));
+                existing.setImageUrl(r.getImageUrl());
 
                 // Kategorien korrekt auflösen (null-sicher)
                 Set<Category> resolvedCategories = (r.getCategories() == null ? Set.<Category>of() : r.getCategories())
@@ -110,6 +108,25 @@ public class RecipeController {
         }
 
         // -------------------------------------------------------------
+        // Image speichern (Multipart) und imageUrl im Rezept setzen
+        // POST /api/recipes/{id}/image
+        // FormData key: "file"
+        // -------------------------------------------------------------
+        @PostMapping(value = "/{id}/image", consumes = "multipart/form-data")
+        public ResponseEntity<String> saveRecipeImage(
+                        @PathVariable Long id,
+                        @RequestParam("file") MultipartFile file) {
+                Recipe recipe = repo.findById(id).orElseThrow();
+
+                String imagePath = imageStorageService.storeImage(id, file);
+
+                recipe.setImageUrl(imagePath);
+                repo.save(recipe);
+
+                return ResponseEntity.ok(imagePath);
+        }
+
+        // -------------------------------------------------------------
         // Rezept löschen
         // -------------------------------------------------------------
         @DeleteMapping("/{id}")
@@ -120,14 +137,16 @@ public class RecipeController {
         // -------------------------------------------------------------
         // PDF Export
         // -------------------------------------------------------------
-        @GetMapping(value = "/{id}/pdf", produces = "application/pdf")
-        public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id) {
+        @GetMapping("/{id}/pdf")
+        public ResponseEntity<byte[]> exportPdf(@PathVariable Long id) {
                 Recipe recipe = repo.findById(id).orElseThrow();
+
                 byte[] pdf = pdfExportService.exportRecipeToPdf(recipe);
 
                 return ResponseEntity.ok()
-                                .header("Content-Disposition",
-                                                "inline; filename=\"recipe_" + id + ".pdf\"")
+                                .header("Content-Disposition", "attachment; filename=\"" + recipe.getTitle() + ".pdf\"")
+                                .header("Content-Type", "application/pdf")
                                 .body(pdf);
         }
+
 }

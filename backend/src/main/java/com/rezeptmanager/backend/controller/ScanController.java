@@ -1,16 +1,18 @@
 package com.rezeptmanager.backend.controller;
 
+import com.rezeptmanager.backend.dto.ParsedRecipe;
 import com.rezeptmanager.backend.model.Recipe;
 import com.rezeptmanager.backend.repo.RecipeRepository;
 import com.rezeptmanager.backend.service.BarcodeService;
-import com.rezeptmanager.backend.service.OcrService;
-import com.rezeptmanager.backend.service.PdfService;
-import com.rezeptmanager.backend.dto.ParsedRecipe;
 import com.rezeptmanager.backend.service.IngredientParserService;
+import com.rezeptmanager.backend.service.TextExtractorService;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,32 +22,31 @@ import java.nio.file.Paths;
 @CrossOrigin(origins = "http://localhost:5173")
 public class ScanController {
 
-    private final OcrService ocrService;
     private final BarcodeService barcodeService;
     private final RecipeRepository recipeRepository;
-    private final PdfService pdfService;
+    private final TextExtractorService textExtractorService;
     private final IngredientParserService ingredientParserService;
 
-    public ScanController(OcrService ocrService,
+    public ScanController(
             BarcodeService barcodeService,
             RecipeRepository recipeRepository,
-            PdfService pdfService,
+            TextExtractorService textExtractorService,
             IngredientParserService ingredientParserService) {
-
-        this.ocrService = ocrService;
         this.barcodeService = barcodeService;
         this.recipeRepository = recipeRepository;
-        this.pdfService = pdfService;
+        this.textExtractorService = textExtractorService;
         this.ingredientParserService = ingredientParserService;
     }
 
     // ------------------------------------------------------------
-    // 1. PREVIEW – nur analysieren, NICHT speichern
+    // 1) PREVIEW – nur analysieren, NICHT speichern
     // ------------------------------------------------------------
 
     @PostMapping("/image-preview")
     public Recipe scanImagePreview(@RequestParam("file") MultipartFile file) {
-        String text = ocrService.extractTextFromImage(file);
+        requireImage(file);
+
+        String text = textExtractorService.extractTextFromImage(file);
         ParsedRecipe parsed = ingredientParserService.parse(text);
 
         Recipe r = new Recipe();
@@ -59,15 +60,9 @@ public class ScanController {
 
     @PostMapping("/file-preview")
     public Recipe scanFilePreview(@RequestParam("file") MultipartFile file) {
-        String name = file.getOriginalFilename().toLowerCase();
-        String text;
+        requirePdf(file);
 
-        if (name.endsWith(".pdf")) {
-            text = pdfService.extractTextFromPdf(file);
-        } else {
-            text = ocrService.extractTextFromFile(file);
-        }
-
+        String text = textExtractorService.extractTextFromPdf(file);
         ParsedRecipe parsed = ingredientParserService.parse(text);
 
         Recipe r = new Recipe();
@@ -80,15 +75,19 @@ public class ScanController {
     }
 
     // ------------------------------------------------------------
-    // 2. ANALYSE + SPEICHERN
+    // 2) ANALYSE + SPEICHERN
     // ------------------------------------------------------------
 
     @PostMapping("/image")
     public Recipe scanImageAndSave(@RequestParam("file") MultipartFile file) {
         try {
-            String fileName = saveUploadedFile(file);
-            String text = ocrService.extractTextFromImage(file);
+            requireImage(file);
 
+            // Optional: Bild auch speichern (wie bei PDF). Wenn du das nicht willst:
+            // weglassen.
+            String fileName = saveUploadedFile(file);
+
+            String text = textExtractorService.extractTextFromImage(file);
             ParsedRecipe parsed = ingredientParserService.parse(text);
 
             Recipe r = new Recipe();
@@ -100,24 +99,24 @@ public class ScanController {
 
             return recipeRepository.save(r);
 
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Fehler beim Speichern des Bildes: " + e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Fehler beim Image-Scan: " + e.getMessage(),
+                    e);
         }
     }
 
     @PostMapping("/file")
     public Recipe scanFileAndSave(@RequestParam("file") MultipartFile file) {
         try {
+            requirePdf(file);
+
             String fileName = saveUploadedFile(file);
-            String name = file.getOriginalFilename().toLowerCase();
-            String text;
 
-            if (name.endsWith(".pdf")) {
-                text = pdfService.extractTextFromPdf(file);
-            } else {
-                text = ocrService.extractTextFromFile(file);
-            }
-
+            String text = textExtractorService.extractTextFromPdf(file);
             ParsedRecipe parsed = ingredientParserService.parse(text);
 
             Recipe r = new Recipe();
@@ -129,13 +128,18 @@ public class ScanController {
 
             return recipeRepository.save(r);
 
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Fehler beim Datei-Upload: " + e.getMessage());
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Fehler beim Datei-Upload: " + e.getMessage(),
+                    e);
         }
     }
 
     // ------------------------------------------------------------
-    // 3. BARCODE-Abfrage
+    // 3) BARCODE-Abfrage
     // ------------------------------------------------------------
 
     @GetMapping("/barcode/{ean}")
@@ -144,19 +148,43 @@ public class ScanController {
     }
 
     // ------------------------------------------------------------
-    // 4. Datei speichern
+    // Helpers
     // ------------------------------------------------------------
 
-    private String saveUploadedFile(MultipartFile file) throws Exception {
-        Path uploadDir = Paths.get("uploads");
-        if (!Files.exists(uploadDir)) {
-            Files.createDirectories(uploadDir);
+    private void requirePdf(MultipartFile file) {
+        String name = safeLowerName(file);
+        if (!name.endsWith(".pdf")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nur PDF wird unterstützt.");
         }
+    }
 
-        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+    private void requireImage(MultipartFile file) {
+        String name = safeLowerName(file);
+        if (!(name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png") || name.endsWith(".webp"))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nur JPG/PNG/WEBP wird unterstützt.");
+        }
+    }
+
+    private String saveUploadedFile(MultipartFile file) throws IOException {
+        Path uploadDir = Paths.get("uploads");
+        Files.createDirectories(uploadDir);
+
+        String original = file.getOriginalFilename();
+        String safeOriginal = (original == null || original.isBlank()) ? "file.bin"
+                : original.replaceAll("[\\\\/:*?\"<>|]", "_");
+
+        String fileName = System.currentTimeMillis() + "_" + safeOriginal;
         Path filePath = uploadDir.resolve(fileName);
 
-        Files.write(filePath, file.getBytes());
+        Files.copy(file.getInputStream(), filePath);
         return fileName;
+    }
+
+    private String safeLowerName(MultipartFile file) {
+        String original = file.getOriginalFilename();
+        if (original == null || original.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dateiname fehlt.");
+        }
+        return original.toLowerCase();
     }
 }

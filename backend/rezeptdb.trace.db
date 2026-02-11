@@ -302,3 +302,31 @@ insert into recipe (created_at,description,image_path,image_url,ingredients,raw_
 org.h2.jdbc.JdbcSQLDataException: Wert zu groß / lang für Feld "DESCRIPTION CHARACTER VARYING(5000)": "U&'Zutaten f\\00fcr  8 Portionen\\000a\\000aDie Gans au\\00dfen und innen waschen un... (5618)"
 Value too long for column "DESCRIPTION CHARACTER VARYING(5000)": "U&'Zutaten f\\00fcr  8 Portionen\\000a\\000aDie Gans au\\00dfen und innen waschen un... (5618)"; SQL statement:
 insert into recipe (created_at,description,image_path,image_url,ingredients,raw_text,source_file,title,updated_at,id) values (?,?,?,?,?,?,?,?,?,default) [22001-232]
+2026-01-18 12:59:32.672250+01:00 jdbc[100]: null
+org.h2.message.DbException: Die Datenbank-Verbindung wurde nicht explizit geschlossen (jetzt in der Müllabfuhr)
+The connection was not closed by the application and is garbage collected [90018-232]
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.get(DbException.java:199)
+	at org.h2.message.DbException.get(DbException.java:188)
+	at org.h2.jdbc.JdbcConnection.closeOld(JdbcConnection.java:217)
+	at org.h2.jdbc.JdbcConnection.<init>(JdbcConnection.java:134)
+	at org.h2.Driver.connect(Driver.java:59)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:144)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:370)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:207)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:488)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:752)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:731)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Caused by: org.h2.jdbc.JdbcSQLNonTransientConnectionException: Die Datenbank-Verbindung wurde nicht explizit geschlossen (jetzt in der Müllabfuhr)
+The connection was not closed by the application and is garbage collected [90018-232]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:690)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	... 16 more
+2026-02-10 14:07:41.920354+01:00 jdbc[63]: exception
+org.h2.jdbc.JdbcSQLDataException: Wert zu groß / lang für Feld "DESCRIPTION CHARACTER VARYING(5000)": "U&'F\\00fcr die kalte K\\00fcche (Salate, Marinaden und Co.) = Oliven\\00f6l & Avoc... (5739)"
+Value too long for column "DESCRIPTION CHARACTER VARYING(5000)": "U&'F\\00fcr die kalte K\\00fcche (Salate, Marinaden und Co.) = Oliven\\00f6l & Avoc... (5739)"; SQL statement:
+insert into recipe (calories,carbohydrates,cooking_time,created_at,description,difficulty_level,fats,image_path,image_url,ingredients,preparation_time,protein,rating,raw_text,servings,source_file,title,updated_at,id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,default) [22001-232]

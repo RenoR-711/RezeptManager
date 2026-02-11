@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import { CATEGORIES } from "../data/categories";
+
+const API_BASE = "http://localhost:8081";
 
 /* -------------------------------------------------------------
    Helper
@@ -11,40 +13,55 @@ function getCategoryLabel(c) {
     return typeof c === "string" ? c : c?.name ?? "";
 }
 
+function normalizeCategories(categories) {
+    return (categories ?? [])
+        .map((c) => (typeof c === "string" ? c : c?.name))
+        .filter(Boolean);
+}
+
+/**
+ * Single source of truth: recipe.imageUrl (DB)
+ * - If absolute: use as-is
+ * - If relative ("/images/..."): prefix backend host
+ * - UI fallback: placeholder
+ */
 function getRecipeImageUrl(recipe) {
     const url = recipe?.imageUrl?.trim();
-    if (url) {
-        return url.startsWith("http") ? url : `http://localhost:8081${url}`;
-    }
+    if (url) return url.startsWith("http") ? url : `${API_BASE}${url}`;
+
     const encoded = encodeURIComponent(recipe?.title || "Rezept");
     return `https://placehold.co/800x500?text=${encoded}`;
 }
 
+function parseIngredients(ingredients) {
+    if (!ingredients) return [];
+    return ingredients
+        .split("\n")
+        .map((line) => line
+            .replace(/^\s*[-•*]\s*/, "")
+            .trim())
+        .filter(Boolean);
+}
+
 /* -------------------------------------------------------------
-   Components
+   UI Components
 ------------------------------------------------------------- */
 
-function CategoryBadge({ category, color }) {
-    const navigate = useNavigate();
-    const label = getCategoryLabel(category);
-
-    function handleClick() {
-        navigate(`/recipes?category=${encodeURIComponent(label)}`);
-    }
-
+function CategoryBadge({ label, color, onClick }) {
     return (
         <button
             type="button"
-            onClick={handleClick}
+            onClick={onClick}
             aria-label={`Nach Kategorie filtern: ${label}`}
             style={{
                 background: color || "#999",
                 color: "white",
-                padding: "2px 8px",
-                borderRadius: "12px",
-                fontSize: "0.7rem",
+                padding: "2px 10px",
+                borderRadius: 999,
+                fontSize: "0.75rem",
                 border: "none",
                 cursor: "pointer",
+                lineHeight: 1.8,
             }}
         >
             {label}
@@ -53,14 +70,9 @@ function CategoryBadge({ category, color }) {
 }
 
 CategoryBadge.propTypes = {
-    category: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.shape({
-            id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-            name: PropTypes.string,
-        }),
-    ]).isRequired,
+    label: PropTypes.string.isRequired,
     color: PropTypes.string,
+    onClick: PropTypes.func.isRequired,
 };
 
 /* -------------------------------------------------------------
@@ -68,276 +80,342 @@ CategoryBadge.propTypes = {
 ------------------------------------------------------------- */
 
 export default function Recipes() {
-    const { id } = useParams(); // ✅ immer vorhanden auf /recipes/:id
-    const recipeId = id; // string ist ok, Backend nimmt Long; URL passt
+    const { id } = useParams();
     const navigate = useNavigate();
 
     const [recipe, setRecipe] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false);
-    const [error, setError] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState("");
 
-    const badgeColors = useMemo(
-        () => Object.fromEntries(CATEGORIES.map((c) => [c.name, c.color])),
-        []
-    );
+    // Category color lookup (optional)
+    const categoryColorByName = useMemo(() => {
+        const map = new Map();
+        (CATEGORIES || []).forEach((c) => {
+            const name = getCategoryLabel(c);
+            const color = typeof c === "object" ? c?.color : undefined;
+            if (name) map.set(name, color);
+        });
+        return map;
+    }, []);
 
-    async function reloadRecipe() {
-        const res = await fetch(`http://localhost:8081/api/recipes/${recipeId}`);
-        if (!res.ok) throw new Error("Rezept konnte nicht geladen werden.");
-        const data = await res.json();
-        setRecipe(data);
-    }
-
+    // Load recipe
     useEffect(() => {
-        let isMounted = true;
+        let ignore = false;
 
         async function load() {
             setLoading(true);
-            setError(null);
+            setError("");
+
             try {
-                const res = await fetch(`http://localhost:8081/api/recipes/${recipeId}`);
-                if (!res.ok) throw new Error("Rezept konnte nicht geladen werden.");
-                const data = await res.json();
-                if (isMounted) setRecipe(data);
-            } catch (e) {
-                if (isMounted) {
-                    setRecipe(null);
-                    setError(e?.message || "Unbekannter Fehler beim Laden.");
+                const res = await fetch(`${API_BASE}/api/recipes/${id}`);
+                if (!res.ok) {
+                    const text = await res.text().catch(() => "");
+                    throw new Error(text || `Rezept nicht gefunden (HTTP ${res.status})`);
                 }
+                const data = await res.json();
+                if (ignore) return;
+                setRecipe(data);
+            } catch (err) {
+                if (!ignore) setError(err?.message || "Fehler beim Laden.");
             } finally {
-                if (isMounted) setLoading(false);
+                if (!ignore) setLoading(false);
             }
         }
 
         load();
         return () => {
-            isMounted = false;
+            ignore = true;
         };
-    }, [recipeId]);
+    }, [id]);
 
-    async function deleteRecipe() {
-        if (!globalThis.confirm("Rezept wirklich löschen?")) return;
-
-        try {
-            const res = await fetch(`http://localhost:8081/api/recipes/${recipeId}`, {
-                method: "DELETE",
-            });
-            if (!res.ok) throw new Error("Löschen fehlgeschlagen.");
-            navigate("/recipes");
-        } catch (e) {
-            globalThis.alert(e?.message || "Löschen fehlgeschlagen.");
-        }
-    }
-
-    async function handleImageUpload(e) {
-        const file = e.target.files?.[0];
+    // Upload image and persist imageUrl
+    async function handleImageUpload(file) {
         if (!file) return;
+        if (!recipe?.id) return;
 
-        // Falls Rezept noch nicht geladen ist
-        if (!recipe) {
-            alert("Rezept ist noch nicht geladen – bitte kurz warten.");
-            return;
-        }
-
-        setUploading(true);
-
-        const formData = new FormData();
-        formData.append("file", file);
+        setError("");
+        setBusy(true);
 
         try {
-            // 1) Upload -> TEXT: "/images/xyz.jpg"
-            const uploadRes = await fetch("http://localhost:8081/api/uploads/image", {
+            const fd = new FormData();
+            fd.append("file", file);
+
+            // 1) Upload
+            const upRes = await fetch(`${API_BASE}/api/recipes/${recipe.id}/image`, {
                 method: "POST",
-                body: formData,
+                body: fd,
             });
 
-            if (!uploadRes.ok) {
-                const msg = await uploadRes.text().catch(() => "");
-                throw new Error(msg || "Upload fehlgeschlagen");
+            if (!upRes.ok) {
+                const text = await upRes.text().catch(() => "");
+                throw new Error(text || `Upload fehlgeschlagen (HTTP ${upRes.status})`);
             }
 
-            const imageUrl = (await uploadRes.text()).trim();
-            if (!imageUrl) throw new Error("Upload lieferte keine imageUrl");
+            // Backend liefert bei dir einen String wie "/images/xyz.jpg"
+            const imageUrl = await upRes.text();
+            const cleanImageUrl = (imageUrl || "").replaceAll('"', "").trim();
 
-            // 2) UI sofort updaten (damit du es direkt siehst)
-            setRecipe((prev) => ({ ...prev, imageUrl }));
-
-            // 3) Persistieren in DB via PUT (minimaler Payload, damit nichts überschrieben wird)
+            // 2) Persist imageUrl via PUT (alle Felder mitsenden, die RecipeController erwartet)
+            //    -> wir nehmen das aktuell geladene recipe als Basis.
             const payload = {
-                title: recipe.title,
-                description: recipe.description,
-                ingredients: recipe.ingredients,
-                rawText: recipe.rawText,
-                difficultyLevel: "EASY",
-                preparationTime: recipe.preparationTime,
-                portions: recipe.portions,
-                protein: recipe.protein,
-                carbohydrates: recipe.carbohydrates,
-                fats: recipe.fats,
-                imageUrl: imageUrl,
-                categories: (recipe.categories ?? []).map((c) => ({
-                    name: typeof c === "string" ? c : c?.name,
-                })),
+                ...recipe,
+                imageUrl: cleanImageUrl,
+                // Categories in der Form, wie dein Backend sie mag: [{name:"..."}]
+                categories: normalizeCategories(recipe.categories).map((name) => ({ name })),
             };
 
-            const putRes = await fetch(`http://localhost:8081/api/recipes/${recipeId}`, {
+            const putRes = await fetch(`${API_BASE}/api/recipes/${recipe.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
 
             if (!putRes.ok) {
-                const msg = await putRes.text().catch(() => "");
-                throw new Error(msg || "Bild konnte nicht gespeichert werden (PUT).");
+                const text = await putRes.text().catch(() => "");
+                throw new Error(text || `Speichern fehlgeschlagen (HTTP ${putRes.status})`);
             }
 
-            // 4) WICHTIG: DB-Stand neu laden (damit Refresh garantiert passt)
-            await reloadRecipe();
+            const updated = await putRes.json().catch(() => null);
+
+            // Local state aktualisieren (robust)
+            setRecipe((prev) => ({
+                ...(updated || prev),
+                imageUrl: (updated?.imageUrl ?? cleanImageUrl),
+            }));
         } catch (err) {
-            console.error(err);
-            alert(err.message || "Bild-Upload fehlgeschlagen");
+            setError(err?.message || "Fehler beim Bild-Upload.");
         } finally {
-            setUploading(false);
-            e.target.value = "";
+            setBusy(false);
         }
     }
 
-    if (loading) return <div className="loader">Rezept wird geladen…</div>;
-    if (error) return <p style={{ color: "crimson" }}>{error}</p>;
-    if (!recipe) return <p>Rezept nicht gefunden.</p>;
+    function handleFilterByCategory(label) {
+        navigate(`/recipes?category=${encodeURIComponent(label)}`);
+    }
 
+    if (loading) {
+        return (
+            <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
+                <p>Lade Rezept…</p>
+            </div>
+        );
+    }
+
+    if (!recipe) {
+        return (
+            <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
+                <h1>Rezept</h1>
+                <div
+                    role="alert"
+                    style={{
+                        background: "#ffe5e5",
+                        border: "1px solid #ffb3b3",
+                        padding: 10,
+                        borderRadius: 8,
+                        marginTop: 12,
+                    }}
+                >
+                    {error || "Rezept nicht gefunden."}
+                </div>
+                <div style={{ marginTop: 12 }}>
+                    <button className="btn" onClick={() => navigate("/recipes")}>
+                        Zurück zur Liste
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    const categories = normalizeCategories(recipe.categories);
+    const imageSrc = getRecipeImageUrl(recipe);
+
+/* -------------------------------------------------------------
+   Render
+------------------------------------------------------------- */    
     return (
-        <div className="page">
-            {/* Header */}
-            <header className="recipe-header">
-                <button className="back-btn" onClick={() => navigate(-1)} type="button">
-                    ← Zurück
-                </button>
-                <h1>{recipe.title}</h1>
-            </header>
+        <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
+            {/* 1) Title + Kategorien + Actions */}
+            <div style={{ display: "flex", alignItems: "start", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 520px" }}>
+                    <h1 style={{ margin: 0 }}>{recipe.title}</h1>
+                </div>
+            </div>
 
-            {/* Hauptbereich */}
-            <section className="recipe-main">
-                {/* Bild + Kategorien */}
-                <div className="recipe-image" style={{ marginBottom: "1rem" }}>
-                    <img
-                        src={getRecipeImageUrl(recipe)}
-                        alt={recipe?.title ? `Bild zu ${recipe.title}` : "Rezeptbild"}
-                        style={{
-                            width: "100%",
-                            maxWidth: "800px",
-                            height: "auto",
-                            borderRadius: "12px",
-                            display: "block",
-                            objectFit: "cover",
-                        }}
-                    />
+            {/* Error */}
+            {error ? (
+                <div
+                    role="alert"
+                    style={{
+                        background: "#ffe5e5",
+                        border: "1px solid #ffb3b3",
+                        padding: 10,
+                        borderRadius: 8,
+                        marginTop: 12,
+                    }}
+                >
+                    {error}
+                </div>
+            ) : null}
 
-                    <div
-                        style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: "0.35rem",
-                            marginTop: "0.6rem",
-                            alignItems: "center",
-                        }}
-                    >
-                        {(recipe.categories ?? []).map((c) => {
-                            const label = getCategoryLabel(c);
-                            return (
-                                <CategoryBadge
-                                    key={`${recipe.id}-${label}`}
-                                    category={c}
-                                    color={badgeColors[label]}
-                                />
-                            );
-                        })}
-                    </div>
+            {/* 2) Image + Upload */}
+            <div style={{ marginTop: 14 }}>
+                <img
+                    src={imageSrc}
+                    alt={recipe.title}
+                    style={{
+                        width: "100%",
+                        maxHeight: 420,
+                        objectFit: "cover",
+                        borderRadius: 12,
+                        display: "block",
+                    }}
+                />
 
-                    {/* Upload */}
-                    <label style={{ display: "block", marginTop: "0.9rem" }}>
-                        Rezeptbild:
+                <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+                    <label style={{ display: "grid", gap: 6 }}>
+                        <span style={{ fontSize: 12, opacity: 0.7 }}>Bild hochladen</span>
                         <input
                             type="file"
                             accept="image/*"
-                            onChange={handleImageUpload}
-                            disabled={uploading}
-                            style={{ display: "block", marginTop: "0.5rem" }}
+                            disabled={busy}
+                            onChange={(e) => handleImageUpload(e.target.files?.[0] || null)}
                         />
                     </label>
 
-                    {uploading && <p style={{ marginTop: "0.5rem" }}>Bild wird gespeichert…</p>}
+                    {busy ? (
+                        <span style={{ fontSize: 12, opacity: 0.7, alignSelf: "end" }}>
+                            Arbeite…
+                        </span>
+                    ) : null}
                 </div>
+            </div>
 
-                {/* Zutaten */}
-                <div className="recipe-ingredients">
-                    <h3>Zutaten</h3>
-                    <ul className="ingredients-box">
-                        {recipe.ingredients
-                            ?.split("\n")
-                            .map((line) => line.trim())
-                            .filter(Boolean)
-                            .map((line, i) => (
-                                <li key={`${line}-${i}`}>{line}</li>
-                            ))}
+            {/* Kategorien */}
+            {categories.length > 0 ? (
+                <div style={{ marginTop: 14 }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: 8,
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        {categories.map((label) => (
+                            <CategoryBadge
+                                key={label}
+                                label={label}
+                                color={categoryColorByName.get(label)}
+                                onClick={() => handleFilterByCategory(label)}
+                            />
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <p style={{ marginTop: 14, fontSize: 12, opacity: 0.7 }}>
+                    Keine Kategorie
+                </p>
+            )}
+
+            {/* Ingredients */}
+            {recipe.ingredients ? (
+                <div style={{ marginTop: 16 }}>
+                    <h3 style={{ marginBottom: 8 }}>Zutaten</h3>
+                    <ul
+                        style={{
+                            margin: 0,
+                            padding: 12,
+                            borderRadius: 10,
+                            background: "#f6f6f6",
+                            whiteSpace: "pre-wrap",
+                            fontFamily: "inherit",
+                            textAlign: "left",
+                            fontSize: 14,
+
+                        }}>
+                        {parseIngredients(recipe.ingredients).map((ingredient) => (
+                            <li key={ingredient}>{ingredient}</li>
+                        ))}
                     </ul>
                 </div>
-            </section>
+            ) : null}
 
-            {/* Zubereitung */}
-            <section className="recipe-description">
-                <h3 style={{ textAlign: "left" }}>Zubereitung</h3>
-                {recipe.description
-                    ?.split("\n")
-                    .map((line) => line.trim())
-                    .filter(Boolean)
-                    .map((line, i) => (
-                        <p key={`${line}-${i}`}>{line}</p>
-                    ))}
-            </section>
+            {/* Description */}
+            {recipe.description ? (
+                <div style={{ marginTop: 16 }}>
+                    <h3 style={{ marginBottom: 8 }}>Beschreibung</h3>
+                    <p style={{ marginTop: 0, whiteSpace: "pre-wrap", textAlign: "left" }}>{recipe.description}</p>
+                </div>
+            ) : null}
 
-            {/* Schwierigkeitsgrad */}
-            <div className="recipe-difficulty">
-                <h4 style={{ textAlign: "left" }}>Schwierigkeitsgrad</h4>
-                <p>{recipe.difficultyLevel?.getLabel()}</p>
+            {/* Details */}
+            <div style={{ marginTop: 16 }}>
+                <h3 style={{ marginBottom: 8 }}>Details</h3>
+
+                <div
+                    style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(3, 1fr)",
+                        gap: 12,
+                    }}
+                >
+                    <Meta label="Schwierigkeit" value={recipe.difficultyLevel} />
+                    <Meta label="Zubereitungszeit (Min.)" value={recipe.prepTimeMinutes} />
+                    <Meta label="Kochzeit (Min.)" value={recipe.cookTimeMinutes} />
+                    <Meta label="Portionen" value={recipe.servings} />
+                    <Meta label="Kalorien" value={recipe.calories} />
+                    <Meta label="Bewertung" value={recipe.rating} />
+                    <Meta label="Protein (g)" value={recipe.protein} />
+                    <Meta label="Kohlenhydrate (g)" value={recipe.carbohydrates} />
+                    <Meta label="Fett (g)" value={recipe.fats} />
+                </div>
             </div>
 
-            <div style={{ textAlign: "left" }} className="recipe-nutrition">
-                Brennwert (pro 100g):
-                <ul>
-                    <li>Protein: {recipe.protein} g</li>
-                    <li>Kohlenhydrate: {recipe.carbohydrates} g</li>
-                    <li>Fette: {recipe.fats} g</li>
-                </ul>
-                Zubereitungszeit: {recipe.preparationTime} Minuten<br />
-                Portionen: {recipe.portions} <br />
-            </div>
-            
-            {/* Aktionen */}
-            <footer className="recipe-actions">
+
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
                 <button
                     className="btn primary"
-                    type="button"
                     onClick={() => navigate(`/recipes/edit/${recipe.id}`)}
                 >
                     Bearbeiten
                 </button>
 
-                <button className="btn danger" type="button" onClick={deleteRecipe}>
-                    Löschen
+                <button className="btn" onClick={() => navigate("/recipes")}>
+                    Zurück
                 </button>
+                <button onClick={() => window.open(`http://localhost:8081/api/recipes/${recipe.id}/pdf`, "_blank")} className="btn">
+                    PDF herunterladen
+                </button>
+            </div>
 
-                <button
-                    className="btn secondary"
-                    type="button"
-                    onClick={() =>
-                        globalThis.open(`http://localhost:8081/api/recipes/${recipeId}/pdf`, "_blank")
-                    }
-                >
-                    PDF
-                </button>
-            </footer>
+        </div>
+    );
+
+}
+
+function Meta({ label, value }) {
+    const display =
+        value === null || value === undefined || value === "" ? "—" : String(value);
+
+    return (
+        <div
+            style={{
+                border: "1px solid #eee",
+                borderRadius: 12,
+                padding: 12,
+                background: "white",
+            }}
+        >
+            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{label}</div>
+            <div style={{ fontWeight: 600 }}>{display}</div>
         </div>
     );
 }
+
+Meta.propTypes = {
+    label: PropTypes.string.isRequired,
+    value: PropTypes.any,
+};
+/* -------------------------------------------------------------
+   Ende
+------------------------------------------------------------- */

@@ -1,179 +1,79 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CATEGORIES } from "../data/categories";
-/* -------------------------------------------------------------
-   Hilfsfunktionen
-------------------------------------------------------------- */
-/* ---------------- State-Handler ---------------- */
-function toggleCategory(cat) {
-    setRecipe((prev) => ({
-        ...prev,
-        categories: prev.categories.includes(cat)
-            ? prev.categories.filter((c) => c !== cat)
-            : [...prev.categories, cat],
-    }));
-}
+import RecipeForm from "../components/RecipeForm";
+import { buildPayloadFromForm } from "../utils/recipeFormMapper";
 
-/* -------------------------------------------------------------
-   Hauptkomponente
-------------------------------------------------------------- */
-export default function RecipeForm() {
+const API_BASE = "http://localhost:8081";
+
+export default function NewRecipe() {
     const navigate = useNavigate();
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+
     const [form, setForm] = useState({
         title: "",
         description: "",
+        ingredients: "",
         categories: [],
-        ingredientsRows: [{ amount: "", name: "" }]
+        difficultyLevel: "EASY",
+        prepTimeMinutes: "",
+        cookTimeMinutes: "",
+        servings: "",
+        calories: "",
+        protein: "",
+        carbohydrates: "",
+        fats: "",
+        rating: "",
     });
-    const categories = CATEGORIES.map(c => c.name);
 
-    // Titel & Beschreibung
-    function updateField(field, value) {
-        setForm(prev => ({ ...prev, [field]: value }));
-    }
-    // Zutaten bearbeiten
-    function updateIngredientRow(index, field, value) {
-        setForm(prev => {
-            const rows = [...prev.ingredientsRows];
-            rows[index] = { ...rows[index], [field]: value };
-            return { ...prev, ingredientsRows: rows };
-        });
-    }
-    function addIngredientRow() {
-        setForm(prev => ({
-            ...prev,
-            ingredientsRows: [...prev.ingredientsRows, { amount: "", name: "" }]
-        }));
-    }
-    function removeIngredientRow(index) {
-        setForm(prev => {
-            const rows = [...prev.ingredientsRows];
-            rows.splice(index, 1);
-            return {
-                ...prev,
-                ingredientsRows:
-                    rows.length > 0 ? rows : [{ amount: "", name: "" }]
-            };
-        });
-    }
-    /* ---------------- Speichern ---------------- */
-    function handleSubmit(e) {
+    async function handleCreate(e) {
         e.preventDefault();
-        const ingredientsString = form.ingredientsRows
-            .filter(r => r.amount.trim() || r.name.trim())
-            .map(r => `${r.amount} ${r.name}`.trim())
-            .join("\n");
-        const payload = {
-            title: form.title.trim(),
-            description: form.description.trim(),
-            ingredients: ingredientsString
-        };
-        fetch("http://localhost:8081/api/recipes", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        }).then(() => navigate("/recipes"));
+        setError("");
+
+        if (!form.title.trim()) {
+            setError("Bitte einen Titel eingeben.");
+            return;
+        }
+
+        const payload = buildPayloadFromForm(form, { imageUrl: "" });
+
+        try {
+            setSaving(true);
+            const res = await fetch(`${API_BASE}/api/recipes`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error(await res.text());
+
+            const created = await res.json().catch(() => null);
+            if (created?.id) navigate(`/recipes/${created.id}`);
+            else navigate("/recipes");
+        } catch (err) {
+            setError(err?.message || "Fehler beim Speichern.");
+        } finally {
+            setSaving(false);
+        }
     }
-    /* ---------------- UI ---------------- */
+
     return (
-        <div className="page">
-            <h2>Neues Rezept anlegen</h2>
-            <form onSubmit={handleSubmit} style={{ maxWidth: "500px" }}>
-                {/* Titel */}
-                <label htmlFor="title"><h3>Titel</h3></label>
-                <input
-                    type="text"
-                    value={form.title}
-                    onChange={e => updateField("title", e.target.value)}
-                    required
-                    style={{ width: "100%", marginBottom: "1rem" }}
-                />
-                <label htmlFor="kategorien"><h3>Kategorien</h3></label>
-                <div
-                    style={{
-                        marginBottom: "1rem",
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "0.8rem",
-                    }}
-                >
-                    {categories.map((cat) => (
-                        <label
-                            key={cat}
-                            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-                        >
-                            <input
-                                type="checkbox"
-                                checked={form.categories.includes(cat)}
-                                onChange={() => toggleCategory(cat)}
-                            />
-                            {cat}
-                        </label>
-                    ))}
-                </div>
-                {/* Beschreibung */}
-                <label htmlFor="description"><h3>Beschreibung</h3></label>
-                <textarea
-                    value={form.description}
-                    onChange={e => updateField("description", e.target.value)}
-                    rows={4}
-                    style={{ width: "100%", marginBottom: "1rem" }}
-                />
-                {/* Zutaten */}
-                <h3>Zutaten</h3>
-                <table
-                    style={{
-                        width: "100%",
-                        borderCollapse: "collapse",
-                        marginBottom: "1rem"
-                    }}
-                >
-                    <thead>
-                        <tr>
-                            <th style={{ borderBottom: "1px solid #ccc" }}>Menge</th>
-                            <th style={{ borderBottom: "1px solid #ccc" }}>Zutat</th>
-                            <th style={{ borderBottom: "1px solid #ccc" }}>Aktion</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {form.ingredientsRows.map((row, idx) => (
-                            <tr key={idx}>
-                                <td>
-                                    <input
-                                        type="text"
-                                        value={row.amount}
-                                        onChange={e =>
-                                            updateIngredientRow(idx, "amount", e.target.value)
-                                        }
-                                        style={{ width: "80px", textAlign: "center" }}
-                                    />
-                                </td>
-                                <td>
-                                    <input
-                                        type="text"
-                                        value={row.name}
-                                        onChange={e =>
-                                            updateIngredientRow(idx, "name", e.target.value)
-                                        }
-                                        style={{ width: "100%" }}
-                                    />
-                                </td>
-                                <td>
-                                    <button type="button" onClick={() => removeIngredientRow(idx)}>
-                                        Entfernen
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <button type="button" onClick={addIngredientRow}>
-                    + Zutat hinzufügen
-                </button>
-                <div style={{ marginTop: "2rem" }}>
-                    <button type="submit">Speichern</button>
-                </div>
-            </form>
+        <div>
+            <h1 style={{ maxWidth: 900, margin: "0 auto", padding: "16px 16px 0" }}>
+                Neues Rezept
+            </h1>
+
+            <RecipeForm
+                form={form}
+                setForm={setForm}
+                onSubmit={handleCreate}
+                submitLabel="Rezept speichern"
+                saving={saving}
+                error={error}
+                onCancel={() => navigate("/recipes")}
+            />
         </div>
     );
 }
+/* -------------------------------------------------------------
+   Ende
+------------------------------------------------------------- */

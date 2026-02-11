@@ -175,16 +175,7 @@ function RecipeCard({ recipe, onDelete, badgeColors }) {
                         paddingRight: "0.5rem",
                     }}
                 >
-                    {(recipe.categories ?? []).map((c) => {
-                        const label = getCategoryLabel(c);
-                        return (
-                            <CategoryBadge
-                                key={`${recipe.id}-${label}`}
-                                category={c}
-                                color={badgeColors[label]}
-                            />
-                        );
-                    })}
+
                 </div>
             </Link>
 

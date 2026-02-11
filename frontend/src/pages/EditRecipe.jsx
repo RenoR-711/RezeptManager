@@ -1,398 +1,163 @@
-import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { CATEGORIES } from "../data/categories";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import RecipeForm from "../components/RecipeForm";
+import {
+    mapRecipeToForm,
+    buildPayloadFromForm,
+} from "../utils/recipeFormMapper";
 
-/* -------------------------------------------------------------
-   Helper
-------------------------------------------------------------- */
-
-function newIngredientRow() {
-    return { id: crypto.randomUUID(), amount: "", name: "" };
-}
-
-function splitIngredient(line) {
-    if (!line) return { amount: "", name: "" };
-
-    const parts = line.trim().split(" ").filter(Boolean);
-
-    // grob: "1 EL Zucker" => amount: "1 EL", name: "Zucker"
-    if (parts.length >= 3) {
-        return { amount: parts.slice(0, 2).join(" "), name: parts.slice(2).join(" ") };
-    }
-    if (parts.length === 2) {
-        return { amount: parts[0], name: parts[1] };
-    }
-    return { amount: "", name: parts.join(" ") };
-}
-
-function toImageSrc(imageUrl) {
-    if (!imageUrl) return "";
-    const trimmed = String(imageUrl).trim();
-    if (!trimmed) return "";
-    return trimmed.startsWith("http") ? trimmed : `http://localhost:8081${trimmed}`;
-}
-
-function placeholderFromTitle(title) {
-    const encoded = encodeURIComponent(title || "Rezept");
-    return `https://placehold.co/800x500?text=${encoded}`;
-}
-
-/* -------------------------------------------------------------
-   Component
-------------------------------------------------------------- */
+const API_BASE = "http://localhost:8081";
 
 export default function EditRecipe() {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const [recipe, setRecipe] = useState(null);
+    const [recipe, setRecipe] = useState(null); // Original aus API (für imageUrl, id etc.)
+    const [form, setForm] = useState({
+        title: "",
+        description: "",
+        ingredients: "",
+        categories: [],
+        difficultyLevel: "EASY",
+        prepTimeMinutes: "",
+        cookTimeMinutes: "",
+        servings: "",
+        calories: "",
+        protein: "",
+        carbohydrates: "",
+        fats: "",
+        rating: "",
+    });
+
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState("");
 
-    const categoryNames = useMemo(() => CATEGORIES.map((c) => c.name), []);
-
-    /* ---------------- Load recipe ---------------- */
-
+    // 1) Laden
     useEffect(() => {
-        let isMounted = true;
+        let ignore = false;
 
         async function load() {
             setLoading(true);
-            setError(null);
+            setError("");
 
             try {
-                const res = await fetch(`http://localhost:8081/api/recipes/${id}`);
-                if (!res.ok) throw new Error("Rezept konnte nicht geladen werden.");
-                const data = await res.json();
-
-                const ingredientsRows = data.ingredients
-                    ? data.ingredients.split(/\r?\n/).map((line) => ({
-                        id: crypto.randomUUID(),
-                        ...splitIngredient(line),
-                    }))
-                    : [newIngredientRow()];
-
-                if (isMounted) {
-                    setRecipe({
-                        id: data.id,
-                        title: data.title || "",
-                        description: data.description || "",
-                        ingredientsRows,
-                        categories: data.categories?.map((c) => c.name) ?? [],
-                        imageUrl: data.imageUrl || "", // ✅ wichtig
-                        rawText: data.rawText || "",
-                    });
+                const res = await fetch(`${API_BASE}/api/recipes/${id}`);
+                if (!res.ok) {
+                    const text = await res.text().catch(() => "");
+                    throw new Error(text || `Rezept nicht gefunden (HTTP ${res.status})`);
                 }
-            } catch (e) {
-                if (isMounted) setError(e?.message || "Unbekannter Fehler.");
+
+                const data = await res.json();
+                if (ignore) return;
+
+                setRecipe(data);
+                setForm(mapRecipeToForm(data));
+            } catch (err) {
+                if (!ignore) {
+                    setError(err?.message || "Fehler beim Laden.");
+                }
             } finally {
-                if (isMounted) setLoading(false);
+                if (!ignore) setLoading(false);
             }
         }
 
         load();
         return () => {
-            isMounted = false;
+            ignore = true;
         };
     }, [id]);
 
-    if (loading) return <div className="page">Lade Rezept…</div>;
-    if (error) return <div className="page" style={{ color: "crimson" }}>{error}</div>;
-    if (!recipe) return <div className="page">Rezept nicht gefunden.</div>;
-
-    /* ---------------- State helpers ---------------- */
-
-    function updateField(field, value) {
-        setRecipe((prev) => ({ ...prev, [field]: value }));
-    }
-
-    function toggleCategory(cat) {
-        setRecipe((prev) => ({
-            ...prev,
-            categories: prev.categories.includes(cat)
-                ? prev.categories.filter((c) => c !== cat)
-                : [...prev.categories, cat],
-        }));
-    }
-
-    function updateIngredientRow(rowId, field, value) {
-        setRecipe((prev) => ({
-            ...prev,
-            ingredientsRows: prev.ingredientsRows.map((r) =>
-                r.id === rowId ? { ...r, [field]: value } : r
-            ),
-        }));
-    }
-
-    function addIngredientRow() {
-        setRecipe((prev) => ({
-            ...prev,
-            ingredientsRows: [...prev.ingredientsRows, newIngredientRow()],
-        }));
-    }
-
-    function removeIngredientRow(rowId) {
-        setRecipe((prev) => ({
-            ...prev,
-            ingredientsRows: prev.ingredientsRows.filter((r) => r.id !== rowId),
-        }));
-    }
-
-    /* ---------------- Save recipe ---------------- */
-
-    async function handleSubmit(e) {
+    // 2) Speichern (PUT)
+    async function handleUpdate(e) {
         e.preventDefault();
-        setSaving(true);
+        setError("");
+
+        if (!form.title.trim()) {
+            setError("Bitte einen Titel eingeben.");
+            return;
+        }
+
+        // imageUrl vom Original übernehmen (oder später hier überschreiben, wenn du Upload integrierst)
+        const payload = buildPayloadFromForm(form, { imageUrl: recipe?.imageUrl });
 
         try {
-            const ingredients = recipe.ingredientsRows
-                .filter((r) => r.amount.trim() || r.name.trim())
-                .map((r) => `${r.amount} ${r.name}`.trim())
-                .join("\n");
+            setSaving(true);
 
-            const payload = {
-                id: recipe.id,
-                title: recipe.title,
-                description: recipe.description,
-                ingredients,
-                rawText: recipe.rawText,
-                imageUrl: recipe.imageUrl, // ✅ explizit mitsenden
-                categories: (recipe.categories ?? []).map((name) => ({ name })),
-            };
-
-            const res = await fetch(`http://localhost:8081/api/recipes/${recipe.id}`, {
+            const res = await fetch(`${API_BASE}/api/recipes/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
 
             if (!res.ok) {
-                const msg = await res.text().catch(() => "");
-                throw new Error(msg || "Speichern fehlgeschlagen.");
+                const text = await res.text().catch(() => "");
+                throw new Error(text || `Fehler beim Speichern (HTTP ${res.status})`);
             }
 
-            navigate(`/recipes/${recipe.id}`);
-        } catch (e2) {
-            alert(e2?.message || "Speichern fehlgeschlagen.");
+            const updated = await res.json().catch(() => null);
+
+            // nach Update zurück zur Detailseite
+            if (updated?.id) navigate(`/recipes/${updated.id}`);
+            else navigate(`/recipes/${id}`);
+        } catch (err) {
+            setError(err?.message || "Fehler beim Speichern.");
         } finally {
             setSaving(false);
         }
     }
 
-    /* ---------------- Image upload (upload + PUT persist) ---------------- */
-
-    async function handleImageUpload(e) {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setUploading(true);
-
-        try {
-            // 1) upload -> TEXT "/images/xyz.jpg"
-            const formData = new FormData();
-            formData.append("file", file);
-
-            const uploadRes = await fetch("http://localhost:8081/api/uploads/image", {
-                method: "POST",
-                body: formData,
-            });
-
-            if (!uploadRes.ok) {
-                const msg = await uploadRes.text().catch(() => "");
-                throw new Error(msg || "Upload fehlgeschlagen.");
-            }
-
-            const imageUrl = (await uploadRes.text()).trim();
-            if (!imageUrl) throw new Error("Upload lieferte keine imageUrl.");
-
-            // 2) UI sofort aktualisieren + 3) Payload aus aktuellem State bauen
-            let payload = null;
-
-            setRecipe((prev) => {
-                const next = { ...prev, imageUrl };
-
-                const ingredients = next.ingredientsRows
-                    .filter((r) => r.amount.trim() || r.name.trim())
-                    .map((r) => `${r.amount} ${r.name}`.trim())
-                    .join("\n");
-
-                payload = {
-                    id: next.id,
-                    title: next.title,
-                    description: next.description,
-                    ingredients,
-                    rawText: next.rawText,
-                    imageUrl: next.imageUrl,
-                    categories: (next.categories ?? []).map((name) => ({ name })),
-                };
-
-                return next;
-            });
-
-            if (!payload?.id) throw new Error("Rezept-ID fehlt – kann nicht speichern.");
-
-            // 4) persist imageUrl via PUT
-            const putRes = await fetch(`http://localhost:8081/api/recipes/${payload.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            if (!putRes.ok) {
-                const msg = await putRes.text().catch(() => "");
-                throw new Error(msg || "Bild konnte nicht gespeichert werden (PUT).");
-            }
-
-            // 5) optional: Backend-Stand übernehmen
-            const updated = await putRes.json();
-            setRecipe((prev) => ({
-                ...prev,
-                imageUrl: updated.imageUrl || prev.imageUrl,
-            }));
-        } catch (err) {
-            console.error(err);
-            alert(err.message || "Bild-Upload fehlgeschlagen");
-        } finally {
-            setUploading(false);
-            e.target.value = "";
-        }
+    if (loading) {
+        return (
+            <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+                <p>Lade Rezept…</p>
+            </div>
+        );
     }
 
-    const imgSrc = recipe.imageUrl ? toImageSrc(recipe.imageUrl) : placeholderFromTitle(recipe.title);
-
-    /* ---------------- UI ---------------- */
+    if (!recipe && error) {
+        return (
+            <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
+                <h1>Rezept bearbeiten</h1>
+                <div
+                    role="alert"
+                    style={{
+                        background: "#ffe5e5",
+                        border: "1px solid #ffb3b3",
+                        padding: 10,
+                        borderRadius: 8,
+                        marginTop: 12,
+                    }}
+                >
+                    {error}
+                </div>
+                <div style={{ marginTop: 12 }}>
+                    <button className="btn" onClick={() => navigate("/recipes")}>
+                        Zurück zur Liste
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="page">
-            <h2>Rezept bearbeiten</h2>
+        <div>
+            <h1 style={{ maxWidth: 900, margin: "0 auto", padding: "16px 16px 0" }}>
+                Rezept bearbeiten
+            </h1>
 
-            <form className="edit-form" onSubmit={handleSubmit}>
-                {/* Titel */}
-                <label htmlFor="titel">Titel</label>
-                <input
-                    id="titel"
-                    value={recipe.title}
-                    onChange={(e) => updateField("title", e.target.value)}
-                />
-
-                {/* Bild Upload + Vorschau */}
-                <div style={{ marginBottom: "1rem" }}>
-                    <label>
-                        Rezeptbild:
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            disabled={uploading}
-                            style={{ display: "block", marginTop: "0.5rem" }}
-                        />
-                    </label>
-
-                    <img
-                        src={imgSrc}
-                        alt={recipe.title ? `Bild zu ${recipe.title}` : "Rezeptbild"}
-                        style={{
-                            marginTop: "0.75rem",
-                            width: "100%",
-                            maxWidth: "520px",
-                            borderRadius: "12px",
-                            display: "block",
-                            objectFit: "cover",
-                        }}
-                    />
-
-                    {uploading && <p style={{ marginTop: "0.5rem" }}>Bild wird hochgeladen…</p>}
-                </div>
-
-                {/* Kategorien */}
-                <label htmlFor="kategorien">Kategorien</label>
-                <div style={{ marginBottom: "1rem", display: "flex", flexWrap: "wrap", gap: "0.8rem" }}>
-                    {categoryNames.map((cat) => (
-                        <label key={cat} style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
-                            <input
-                                type="checkbox"
-                                checked={recipe.categories.includes(cat)}
-                                onChange={() => toggleCategory(cat)}
-                            />
-                            {cat}
-                        </label>
-                    ))}
-                </div>
-
-                {/* Beschreibung */}
-                <label htmlFor="beschreibung">Beschreibung</label>
-                <textarea
-                    id="beschreibung"
-                    value={recipe.description}
-                    onChange={(e) => updateField("description", e.target.value)}
-                    rows={5}
-                    style={{ width: "100%", marginBottom: "1rem" }}
-                />
-
-                {/* Zutaten */}
-                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "1rem" }}>
-                    <thead>
-                        <tr>
-                            <th style={{ borderBottom: "1px solid #ccc" }}>Menge</th>
-                            <th style={{ borderBottom: "1px solid #ccc" }}>Zutat</th>
-                            <th style={{ borderBottom: "1px solid #ccc" }}>Aktion</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {recipe.ingredientsRows.map((row) => (
-                            <tr key={row.id}>
-                                <td>
-                                    <input
-                                        type="text"
-                                        value={row.amount}
-                                        onChange={(e) => updateIngredientRow(row.id, "amount", e.target.value)}
-                                        style={{ width: "90px" }}
-                                    />
-                                </td>
-                                <td>
-                                    <input
-                                        type="text"
-                                        value={row.name}
-                                        onChange={(e) => updateIngredientRow(row.id, "name", e.target.value)}
-                                        style={{ width: "100%" }}
-                                    />
-                                </td>
-                                <td>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeIngredientRow(row.id)}
-                                        style={{ padding: "0.25rem 0.6rem" }}
-                                    >
-                                        Entfernen
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                <button type="button" onClick={addIngredientRow} style={{ marginBottom: "1rem" }}>
-                    + Zutat hinzufügen
-                </button>
-
-                {/* Aktionen */}
-                <div style={{ display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
-                    <button className="btn primary" type="submit" disabled={saving}>
-                        {saving ? "Speichert…" : "Speichern"}
-                    </button>
-
-                    <button
-                        className="btn secondary"
-                        type="button"
-                        onClick={() => navigate(`/recipes/${recipe.id}`)}
-                    >
-                        Abbrechen
-                    </button>
-                </div>
-            </form>
+            <RecipeForm
+                form={form}
+                setForm={setForm}
+                onSubmit={handleUpdate}
+                submitLabel="Änderungen speichern"
+                saving={saving}
+                error={error}
+                onCancel={() => navigate(`/recipes/${id}`)}
+            />
         </div>
     );
 }
+/* -------------------------------------------------------------
+   Ende
+------------------------------------------------------------- */
