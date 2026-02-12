@@ -25,8 +25,8 @@ public class TextExtractorService {
     private final int pdfDpi;
 
     public TextExtractorService(
-            @Value("${app.ocr.datapath:}") String tessDataPath,
-            @Value("${app.ocr.language:deu}") String language,
+            @Value("${app.ocr.data-path:}") String tessDataPath,
+            @Value("${app.ocr.languages:deu+eng}") String language,
             @Value("${app.ocr.pdf.dpi:300}") int pdfDpi) {
         this.tessDataPath = tessDataPath;
         this.language = language;
@@ -176,9 +176,6 @@ public class TextExtractorService {
         // datapath muss auf tessdata zeigen (wo deu.traineddata liegt)
         t.setDatapath(tessDataPath);
         t.setLanguage(language);
-
-        // PSM für Dokumente/Rezepte meist besser als AUTO
-        t.setTessVariable("tessedit_pageseg_mode", "4"); // SINGLE_COLUMN
 
         return t;
     }

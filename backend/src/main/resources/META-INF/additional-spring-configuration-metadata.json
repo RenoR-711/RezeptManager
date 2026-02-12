@@ -1,0 +1,17 @@
+{"properties": [
+  {
+    "name": "app.ocr.data-path",
+    "type": "java.lang.String",
+    "description": "A description for 'app.ocr.data-path'"
+  },
+  {
+    "name": "app.ocr.languages",
+    "type": "java.lang.String",
+    "description": "A description for 'app.ocr.languages'"
+  },
+  {
+    "name": "file.upload-dir",
+    "type": "java.lang.String",
+    "description": "A description for 'file.upload-dir'"
+  }
+]}
