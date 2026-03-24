@@ -40,12 +40,14 @@ JPA / H2 Database
 + Local Image Storage
 ```
 
-Key ideas:
+**Key ideas:**
 
 - layered backend structure
 - reusable form logic in frontend
 - DTO based API
 - separated scan workflow
+
+<hr>
 
 ### ▶️ Run Locally
 **Backend**
