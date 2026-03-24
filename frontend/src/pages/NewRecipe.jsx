@@ -1,33 +1,39 @@
-import { useState } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import RecipeForm from "../components/RecipeForm";
-import { buildPayloadFromForm } from "../utils/recipeFormMapper";
+import {
+    buildPayloadFromForm,
+    EMPTY_RECIPE_FORM,
+} from "../utils/recipeFormMapper";
 
-const API_BASE = "http://localhost:8081";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8081";
 
+/**
+ * -------------------------------------------------------------
+ * NewRecipe
+ * -------------------------------------------------------------
+ * Seite zum Anlegen eines neuen Rezepts.
+ *
+ * Ablauf:
+ * - Formular ausfüllen
+ * - optional ein Bild auswählen
+ * - Rezept speichern
+ * -------------------------------------------------------------
+ */
 export default function NewRecipe() {
     const navigate = useNavigate();
+
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [form, setForm] = useState(EMPTY_RECIPE_FORM);
 
-    const [form, setForm] = useState({
-        title: "",
-        description: "",
-        ingredients: "",
-        categories: [],
-        difficultyLevel: "EASY",
-        prepTimeMinutes: "",
-        cookTimeMinutes: "",
-        servings: "",
-        calories: "",
-        protein: "",
-        carbohydrates: "",
-        fats: "",
-        rating: "",
-    });
+    /* ---------------------------------------------------------
+       Rezept speichern
+    --------------------------------------------------------- */
 
-    async function handleCreate(e) {
-        e.preventDefault();
+    async function handleCreate(event) {
+        event.preventDefault();
         setError("");
 
         if (!form.title.trim()) {
@@ -35,26 +41,99 @@ export default function NewRecipe() {
             return;
         }
 
-        const payload = buildPayloadFromForm(form, { imageUrl: "" });
-
         try {
             setSaving(true);
-            const res = await fetch(`${API_BASE}/api/recipes`, {
+
+            let imageUrl = form.imageUrl || "";
+
+            if (form.imageFile) {
+                const imageData = new FormData();
+                imageData.append("file", form.imageFile);
+
+                const uploadResponse = await fetch(`${API_BASE}/api/images/upload`, {
+                    method: "POST",
+                    body: imageData,
+                });
+
+                if (!uploadResponse.ok) {
+                    const uploadText = await uploadResponse.text().catch(() => "");
+                    throw new Error(
+                        uploadText ||
+                        `Bild konnte nicht hochgeladen werden (HTTP ${uploadResponse.status})`
+                    );
+                }
+
+                const uploadResult = await uploadResponse.json().catch(() => null);
+
+                imageUrl =
+                    uploadResult?.imageUrl ||
+                    uploadResult?.url ||
+                    uploadResult?.path ||
+                    imageUrl;
+            }
+
+            const payload = buildPayloadFromForm(form, { imageUrl });
+
+            const response = await fetch(`${API_BASE}/api/recipes`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify(payload),
             });
-            if (!res.ok) throw new Error(await res.text());
 
-            const created = await res.json().catch(() => null);
-            if (created?.id) navigate(`/recipes/${created.id}`);
-            else navigate("/recipes");
+            if (!response.ok) {
+                const message = await response.text().catch(() => "");
+                throw new Error(message || "Fehler beim Speichern.");
+            }
+
+            const createdRecipe = await response.json().catch(() => null);
+
+            if (createdRecipe?.id) {
+                navigate(`/recipes/${createdRecipe.id}`);
+                return;
+            }
+
+            navigate("/recipes");
         } catch (err) {
             setError(err?.message || "Fehler beim Speichern.");
         } finally {
             setSaving(false);
         }
     }
+
+    /* ---------------------------------------------------------
+       Bild
+    --------------------------------------------------------- */
+
+    const imagePreviewUrl = useMemo(() => {
+        if (form.imageFile) {
+            return URL.createObjectURL(form.imageFile);
+        }
+
+        return form.imageUrl || "";
+    }, [form.imageFile, form.imageUrl]);
+
+    useEffect(() => {
+        return () => {
+            if (imagePreviewUrl?.startsWith("blob:")) {
+                URL.revokeObjectURL(imagePreviewUrl);
+            }
+        };
+    }, [imagePreviewUrl]);
+
+    function handleImageChange(event) {
+        const file = event.target.files?.[0] ?? null;
+
+        setForm((prev) => ({
+            ...prev,
+            imageFile: file,
+        }));
+    }
+
+    /* ---------------------------------------------------------
+       Render
+    --------------------------------------------------------- */
 
     return (
         <div>
@@ -70,10 +149,10 @@ export default function NewRecipe() {
                 saving={saving}
                 error={error}
                 onCancel={() => navigate("/recipes")}
+                imageFile={form.imageFile}
+                imagePreviewUrl={imagePreviewUrl}
+                onImageChange={handleImageChange}
             />
         </div>
     );
 }
-/* -------------------------------------------------------------
-   Ende
-------------------------------------------------------------- */

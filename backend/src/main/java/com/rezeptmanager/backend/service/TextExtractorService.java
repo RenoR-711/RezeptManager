@@ -13,12 +13,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 
 @Service
 public class TextExtractorService {
+
+    /*
+     * -------------------------------------------------------------
+     * Konfiguration
+     * -------------------------------------------------------------
+     */
+
+    private static final int MIN_DIRECT_TEXT_LENGTH = 60;
+    private static final double MIN_TEXT_RATIO = 0.45;
+    private static final double OCR_SCALE_FACTOR = 2.0;
 
     private final String tessDataPath;
     private final String language;
@@ -33,65 +45,67 @@ public class TextExtractorService {
         this.pdfDpi = pdfDpi;
     }
 
-    // -------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------
+    /*
+     * -------------------------------------------------------------
+     * Public API
+     * -------------------------------------------------------------
+     */
 
     /**
-     * Auto: Text-PDF -> direkt extrahieren, Scan-PDF -> OCR über gerenderte Seiten
+     * Extrahiert Text aus einer PDF-Datei.
+     *
+     * Ablauf:
+     * 1. Versuch, direkt eingebetteten Text aus der PDF zu lesen
+     * 2. Falls kaum sinnvoller Text gefunden wird, OCR über gerenderte PDF-Seiten
      */
     public String extractTextFromPdf(MultipartFile pdfFile) {
-        if (pdfFile == null || pdfFile.isEmpty()) {
-            throw new TextExtractionException("PDF file is empty.");
-        }
+        validateUploadedFile(pdfFile, "PDF file is empty.");
 
-        try (InputStream in = pdfFile.getInputStream();
-                PDDocument doc = PDDocument.load(in)) {
+        try (InputStream inputStream = pdfFile.getInputStream();
+                PDDocument document = PDDocument.load(inputStream)) {
 
-            // 1) Versuch: echten Text extrahieren
-            String directText = extractTextDirect(doc);
+            String directText = extractDirectTextFromPdf(document);
 
-            // Heuristik: wenn genügend Text vorhanden ist -> Text-PDF
-            if (looksLikeRealText(directText)) {
-                return normalize(directText);
+            if (containsUsableDirectText(directText)) {
+                return normalizeText(directText);
             }
 
-            // 2) Sonst: Scan-PDF -> rendern + OCR pro Seite
-            String ocrText = ocrPdfByRendering(doc);
+            String ocrText = extractTextFromRenderedPdfPages(document);
 
             if (ocrText == null || ocrText.isBlank()) {
                 throw new TextExtractionException(
                         "OCR returned empty text. Check image quality or Tesseract configuration.");
             }
 
-            return normalize(ocrText);
+            return normalizeText(ocrText);
 
         } catch (IOException e) {
             throw new TextExtractionException("Could not read PDF.", e);
         }
     }
 
-    /** jpg/png -> OCR */
+    /**
+     * Extrahiert Text aus einer Bilddatei per OCR.
+     */
     public String extractTextFromImage(MultipartFile imageFile) {
-        if (imageFile == null || imageFile.isEmpty()) {
-            throw new TextExtractionException("Image file is empty.");
-        }
+        validateUploadedFile(imageFile, "Image file is empty.");
 
-        try {
-            BufferedImage input = ImageIO.read(imageFile.getInputStream());
-            if (input == null) {
+        try (InputStream inputStream = imageFile.getInputStream()) {
+            BufferedImage sourceImage = ImageIO.read(inputStream);
+
+            if (sourceImage == null) {
                 throw new TextExtractionException("Unsupported image format (ImageIO returned null).");
             }
 
-            BufferedImage pre = preprocessForOcr(input);
+            BufferedImage processedImage = preprocessImageForOcr(sourceImage);
+            String extractedText = createTesseract().doOCR(processedImage);
 
-            String text = getTesseract().doOCR(pre);
-
-            if (text == null || text.isBlank()) {
-                throw new TextExtractionException("OCR returned empty text. Try a sharper image / better contrast.");
+            if (extractedText == null || extractedText.isBlank()) {
+                throw new TextExtractionException(
+                        "OCR returned empty text. Try a sharper image / better contrast.");
             }
 
-            return normalize(text);
+            return normalizeText(extractedText);
 
         } catch (IOException e) {
             throw new TextExtractionException("Could not read image.", e);
@@ -100,58 +114,81 @@ public class TextExtractorService {
         }
     }
 
-    // -------------------------------------------------------------
-    // PDF: direct text
-    // -------------------------------------------------------------
-    private String extractTextDirect(PDDocument doc) {
+    /*
+     * -------------------------------------------------------------
+     * PDF: direkte Textextraktion
+     * -------------------------------------------------------------
+     */
+
+    /**
+     * Liest direkt eingebetteten Text aus einer PDF.
+     * Falls das fehlschlägt, wird ein leerer String zurückgegeben,
+     * damit anschließend OCR als Fallback genutzt werden kann.
+     */
+    private String extractDirectTextFromPdf(PDDocument document) {
         try {
-            PDFTextStripper stripper = new PDFTextStripper();
-            stripper.setSortByPosition(true);
-            return stripper.getText(doc);
+            PDFTextStripper textStripper = new PDFTextStripper();
+            textStripper.setSortByPosition(true);
+            return textStripper.getText(document);
         } catch (IOException e) {
-            // falls TextStripper aus irgendeinem Grund scheitert -> lieber OCR versuchen
             return "";
         }
     }
 
-    private boolean looksLikeRealText(String text) {
-        if (text == null)
+    /**
+     * Prüft heuristisch, ob der extrahierte PDF-Text wahrscheinlich
+     * echter, brauchbarer Text ist und nicht nur Artefakte oder Rauschen.
+     */
+    private boolean containsUsableDirectText(String text) {
+        if (text == null) {
             return false;
+        }
 
-        String t = text.trim();
-        if (t.length() < 60)
-            return false; // sehr kurz -> wahrscheinlich nicht
-        // wenn sehr viele “komische” Zeichen: eher nicht
-        long letters = t.chars().filter(Character::isLetterOrDigit).count();
-        double ratio = (t.length() == 0) ? 0 : (letters * 1.0 / t.length());
-        return ratio > 0.45; // grobe Heuristik
+        String trimmedText = text.trim();
+        if (trimmedText.length() < MIN_DIRECT_TEXT_LENGTH) {
+            return false;
+        }
+
+        long letterOrDigitCount = trimmedText.chars()
+                .filter(Character::isLetterOrDigit)
+                .count();
+
+        double ratio = trimmedText.isEmpty()
+                ? 0
+                : (letterOrDigitCount * 1.0 / trimmedText.length());
+
+        return ratio > MIN_TEXT_RATIO;
     }
 
-    // -------------------------------------------------------------
-    // PDF: OCR by rendering pages
-    // -------------------------------------------------------------
-    private String ocrPdfByRendering(PDDocument doc) {
+    /*
+     * -------------------------------------------------------------
+     * PDF: OCR über gerenderte Seiten
+     * -------------------------------------------------------------
+     */
+
+    /**
+     * Rendert jede PDF-Seite als Bild und führt anschließend OCR darüber aus.
+     */
+    private String extractTextFromRenderedPdfPages(PDDocument document) {
         try {
-            PDFRenderer renderer = new PDFRenderer(doc);
+            PDFRenderer pdfRenderer = new PDFRenderer(document);
+            ITesseract tesseract = createTesseract();
 
-            StringBuilder sb = new StringBuilder(4096);
-            ITesseract tess = getTesseract();
+            StringBuilder extractedText = new StringBuilder(4096);
+            int pageCount = document.getNumberOfPages();
 
-            int pages = doc.getNumberOfPages();
-            for (int i = 0; i < pages; i++) {
-                // render page -> image
-                BufferedImage pageImg = renderer.renderImageWithDPI(i, pdfDpi, ImageType.RGB);
+            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+                BufferedImage pageImage = pdfRenderer.renderImageWithDPI(pageIndex, pdfDpi, ImageType.RGB);
+                BufferedImage processedPageImage = preprocessImageForOcr(pageImage);
 
-                // preprocess
-                BufferedImage pre = preprocessForOcr(pageImg);
+                String pageText = tesseract.doOCR(processedPageImage);
 
-                String pageText = tess.doOCR(pre);
                 if (pageText != null && !pageText.isBlank()) {
-                    sb.append(pageText.trim()).append("\n\n");
+                    extractedText.append(pageText.trim()).append("\n\n");
                 }
             }
 
-            return sb.toString();
+            return extractedText.toString();
 
         } catch (TesseractException e) {
             throw new TextExtractionException("OCR failed while processing PDF pages.", e);
@@ -160,66 +197,118 @@ public class TextExtractorService {
         }
     }
 
-    // -------------------------------------------------------------
-    // Tesseract init
-    // -------------------------------------------------------------
-    private ITesseract getTesseract() {
-        Tesseract t = new Tesseract();
+    /*
+     * -------------------------------------------------------------
+     * Tesseract-Konfiguration
+     * -------------------------------------------------------------
+     */
 
+    /**
+     * Erstellt eine konfigurierte Tesseract-Instanz.
+     *
+     * Hinweis:
+     * Der Pfad muss auf den Ordner zeigen, in dem sich die
+     * Sprachdateien wie deu.traineddata oder eng.traineddata befinden.
+     */
+    private ITesseract createTesseract() {
         if (tessDataPath == null || tessDataPath.isBlank()) {
-            // tess4j kann manchmal ohne datapath laufen, aber auf Windows ist es oft die
-            // Fehlerquelle
             throw new TextExtractionException(
-                    "Tesseract datapath is not configured. Set app.ocr.datapath in application.properties.");
+                    "Tesseract datapath is not configured. Set app.ocr.data-path to your tessdata folder in application.properties.");
         }
 
-        // datapath muss auf tessdata zeigen (wo deu.traineddata liegt)
-        t.setDatapath(tessDataPath);
-        t.setLanguage(language);
+        Tesseract tesseract = new Tesseract();
+        tesseract.setDatapath(tessDataPath);
+        tesseract.setLanguage(language);
 
-        return t;
+        return tesseract;
     }
 
-    // -------------------------------------------------------------
-    // Preprocessing (simpel aber effektiv)
-    // -------------------------------------------------------------
-    private BufferedImage preprocessForOcr(BufferedImage src) {
-        // 1) ggf. leicht hochskalieren (hilft bei kleinem Text)
-        BufferedImage scaled = scale(src, 2.0);
+    /*
+     * -------------------------------------------------------------
+     * Bildvorverarbeitung für OCR
+     * -------------------------------------------------------------
+     */
 
-        // 2) grayscale
-        BufferedImage gray = new BufferedImage(scaled.getWidth(), scaled.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-        Graphics2D g = gray.createGraphics();
-        g.drawImage(scaled, 0, 0, null);
-        g.dispose();
+    /**
+     * Bereitet ein Bild für OCR vor:
+     * 1. Hochskalieren für kleine Schrift
+     * 2. Umwandlung in Graustufen
+     * 3. Binarisierung für stärkeren Kontrast
+     */
+    private BufferedImage preprocessImageForOcr(BufferedImage sourceImage) {
+        BufferedImage scaledImage = scaleImage(sourceImage, OCR_SCALE_FACTOR);
 
-        // 3) binarize (Kontrast)
-        BufferedImage bw = new BufferedImage(gray.getWidth(), gray.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
-        Graphics2D g2 = bw.createGraphics();
-        g2.drawImage(gray, 0, 0, null);
-        g2.dispose();
+        BufferedImage grayscaleImage = new BufferedImage(
+                scaledImage.getWidth(),
+                scaledImage.getHeight(),
+                BufferedImage.TYPE_BYTE_GRAY);
 
-        return bw;
+        Graphics2D grayscaleGraphics = grayscaleImage.createGraphics();
+        grayscaleGraphics.drawImage(scaledImage, 0, 0, null);
+        grayscaleGraphics.dispose();
+
+        BufferedImage binaryImage = new BufferedImage(
+                grayscaleImage.getWidth(),
+                grayscaleImage.getHeight(),
+                BufferedImage.TYPE_BYTE_BINARY);
+
+        Graphics2D binaryGraphics = binaryImage.createGraphics();
+        binaryGraphics.drawImage(grayscaleImage, 0, 0, null);
+        binaryGraphics.dispose();
+
+        return binaryImage;
     }
 
-    private BufferedImage scale(BufferedImage src, double factor) {
-        int w = (int) Math.round(src.getWidth() * factor);
-        int h = (int) Math.round(src.getHeight() * factor);
+    /**
+     * Skaliert ein Bild hoch, um kleine Schrift besser für OCR lesbar zu machen.
+     */
+    private BufferedImage scaleImage(BufferedImage sourceImage, double scaleFactor) {
+        int scaledWidth = (int) Math.round(sourceImage.getWidth() * scaleFactor);
+        int scaledHeight = (int) Math.round(sourceImage.getHeight() * scaleFactor);
 
-        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = out.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g.drawImage(src, 0, 0, w, h, null);
-        g.dispose();
-        return out;
+        BufferedImage scaledImage = new BufferedImage(
+                scaledWidth,
+                scaledHeight,
+                BufferedImage.TYPE_INT_RGB);
+
+        Graphics2D graphics = scaledImage.createGraphics();
+        graphics.setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        graphics.drawImage(sourceImage, 0, 0, scaledWidth, scaledHeight, null);
+        graphics.dispose();
+
+        return scaledImage;
     }
 
-    private String normalize(String text) {
-        String t = text == null ? "" : text;
-        // sanft normalisieren
-        t = t.replace("\r\n", "\n").replace("\r", "\n");
-        // überflüssige Leerzeilen reduzieren
-        t = t.replaceAll("\n{3,}", "\n\n");
-        return t.trim();
+    /*
+     * -------------------------------------------------------------
+     * Validierung & Normalisierung
+     * -------------------------------------------------------------
+     */
+
+    /**
+     * Prüft, ob eine hochgeladene Datei vorhanden und nicht leer ist.
+     */
+    private void validateUploadedFile(MultipartFile file, String errorMessage) {
+        if (file == null || file.isEmpty()) {
+            throw new TextExtractionException(errorMessage);
+        }
+    }
+
+    /**
+     * Vereinheitlicht Zeilenumbrüche und reduziert überflüssige Leerzeilen.
+     */
+    private String normalizeText(String text) {
+        String normalizedText = text == null ? "" : text;
+
+        normalizedText = normalizedText
+                .replace("\r\n", "\n")
+                .replace("\r", "\n")
+                .replace("\t", " ");
+
+        normalizedText = normalizedText.replaceAll("\n{3,}", "\n\n");
+
+        return normalizedText.trim();
     }
 }

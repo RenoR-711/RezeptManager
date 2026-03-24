@@ -4,43 +4,102 @@ import PropTypes from "prop-types";
 import { CATEGORIES } from "../data/categories";
 
 const API_BASE = "http://localhost:8081";
+const PLACEHOLDER_BASE = "https://placehold.co/800x500?text=";
 
 /* -------------------------------------------------------------
-   Helper
+   Helper Functions
 ------------------------------------------------------------- */
 
-function getCategoryLabel(c) {
-    return typeof c === "string" ? c : c?.name ?? "";
+/**
+ * Gibt den lesbaren Kategorienamen zurück.
+ * Unterstützt sowohl Strings als auch Objekt-Formate.
+ */
+function getCategoryLabel(category) {
+    return typeof category === "string" ? category : category?.name ?? "";
 }
 
+/**
+ * Normalisiert Kategorien in ein sauberes String-Array.
+ */
 function normalizeCategories(categories) {
     return (categories ?? [])
-        .map((c) => (typeof c === "string" ? c : c?.name))
+        .map((category) => getCategoryLabel(category))
         .filter(Boolean);
 }
 
 /**
- * Single source of truth: recipe.imageUrl (DB)
- * - If absolute: use as-is
- * - If relative ("/images/..."): prefix backend host
- * - UI fallback: placeholder
+ * Liefert die Bild-URL für ein Rezept.
+ * - Absolute URL: direkt verwenden
+ * - Relative URL: Backend-Host voranstellen
+ * - Kein Bild: Placeholder verwenden
  */
 function getRecipeImageUrl(recipe) {
-    const url = recipe?.imageUrl?.trim();
-    if (url) return url.startsWith("http") ? url : `${API_BASE}${url}`;
+    const rawUrl = recipe?.imageUrl?.trim();
 
-    const encoded = encodeURIComponent(recipe?.title || "Rezept");
-    return `https://placehold.co/800x500?text=${encoded}`;
+    if (rawUrl) {
+        return rawUrl.startsWith("http") ? rawUrl : `${API_BASE}${rawUrl}`;
+    }
+
+    const encodedTitle = encodeURIComponent(recipe?.title || "Rezept");
+    return `${PLACEHOLDER_BASE}${encodedTitle}`;
 }
 
+/**
+ * Wandelt Zutaten-Text in eine Liste um.
+ * Entfernt typische Aufzählungszeichen.
+ */
 function parseIngredients(ingredients) {
     if (!ingredients) return [];
-    return ingredients
-        .split("\n")
-        .map((line) => line
-            .replace(/^\s*[-•*]\s*/, "")
-            .trim())
-        .filter(Boolean);
+
+    if (Array.isArray(ingredients)) {
+        return ingredients
+            .map((item) => {
+                if (!item) return "";
+
+                if (typeof item === "string") {
+                    return item.trim();
+                }
+
+                const amount = item.amount ?? "";
+                const amountWord = item.amountWord ?? item.Amount_Word ?? item.unit ?? "";
+                const ingredientName =
+                    item.name ??
+                    item.ingredientName ??
+                    item.ingredient?.name ??
+                    "";
+
+                return [amount, amountWord, ingredientName]
+                    .filter((value) => value !== null && value !== undefined && String(value).trim() !== "")
+                    .join(" ")
+                    .trim();
+            })
+            .filter(Boolean);
+    }
+
+    if (typeof ingredients === "string") {
+        return ingredients
+            .split("\n")
+            .map((line) => line.replace(/^\s*[-•*]\s*/, "").trim())
+            .filter(Boolean);
+    }
+
+    return [];
+}
+
+/**
+ * Baut eine Farbzuordnung für Kategorien auf.
+ */
+function buildCategoryColorMap(categories) {
+    const map = new Map();
+
+    (categories || []).forEach((category) => {
+        const name = getCategoryLabel(category);
+        const color = typeof category === "object" ? category?.color : undefined;
+
+        if (name) map.set(name, color);
+    });
+
+    return map;
 }
 
 /* -------------------------------------------------------------
@@ -54,14 +113,14 @@ function CategoryBadge({ label, color, onClick }) {
             onClick={onClick}
             aria-label={`Nach Kategorie filtern: ${label}`}
             style={{
-                background: color || "#999",
-                color: "white",
-                padding: "2px 10px",
+                background: color || "#888",
+                color: "#fff",
+                padding: "4px 10px",
                 borderRadius: 999,
-                fontSize: "0.75rem",
                 border: "none",
+                fontSize: "0.75rem",
+                lineHeight: 1.6,
                 cursor: "pointer",
-                lineHeight: 1.8,
             }}
         >
             {label}
@@ -75,8 +134,32 @@ CategoryBadge.propTypes = {
     onClick: PropTypes.func.isRequired,
 };
 
+function Meta({ label, value }) {
+    const displayValue =
+        value === null || value === undefined || value === "" ? "—" : String(value);
+
+    return (
+        <div
+            style={{
+                border: "1px solid #eee",
+                borderRadius: 12,
+                padding: 12,
+                background: "#fff",
+            }}
+        >
+            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{label}</div>
+            <div style={{ fontWeight: 600 }}>{displayValue}</div>
+        </div>
+    );
+}
+
+Meta.propTypes = {
+    label: PropTypes.string.isRequired,
+    value: PropTypes.any,
+};
+
 /* -------------------------------------------------------------
-   Page
+   Main Page Component
 ------------------------------------------------------------- */
 
 export default function Recipes() {
@@ -88,100 +171,113 @@ export default function Recipes() {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
 
-    // Category color lookup (optional)
     const categoryColorByName = useMemo(() => {
-        const map = new Map();
-        (CATEGORIES || []).forEach((c) => {
-            const name = getCategoryLabel(c);
-            const color = typeof c === "object" ? c?.color : undefined;
-            if (name) map.set(name, color);
-        });
-        return map;
+        return buildCategoryColorMap(CATEGORIES);
     }, []);
 
-    // Load recipe
+    const categories = useMemo(() => {
+        return normalizeCategories(recipe?.categories);
+    }, [recipe]);
+
+    const imageSrc = useMemo(() => {
+        return getRecipeImageUrl(recipe);
+    }, [recipe]);
+
+    const ingredientLines = useMemo(() => {
+        return parseIngredients(recipe?.ingredients);
+    }, [recipe]);
+
+    /* ---------------------------------------------------------
+       Data Loading
+    --------------------------------------------------------- */
     useEffect(() => {
         let ignore = false;
 
-        async function load() {
+        async function loadRecipe() {
             setLoading(true);
             setError("");
 
             try {
-                const res = await fetch(`${API_BASE}/api/recipes/${id}`);
-                if (!res.ok) {
-                    const text = await res.text().catch(() => "");
-                    throw new Error(text || `Rezept nicht gefunden (HTTP ${res.status})`);
+                const response = await fetch(`${API_BASE}/api/recipes/${id}`);
+
+                if (!response.ok) {
+                    const text = await response.text().catch(() => "");
+                    throw new Error(text || `Rezept nicht gefunden (HTTP ${response.status})`);
                 }
-                const data = await res.json();
-                if (ignore) return;
-                setRecipe(data);
+
+                const data = await response.json();
+
+                if (!ignore) {
+                    setRecipe(data);
+                }
             } catch (err) {
-                if (!ignore) setError(err?.message || "Fehler beim Laden.");
+                if (!ignore) {
+                    setError(err?.message || "Fehler beim Laden des Rezepts.");
+                }
             } finally {
-                if (!ignore) setLoading(false);
+                if (!ignore) {
+                    setLoading(false);
+                }
             }
         }
 
-        load();
+        loadRecipe();
+
         return () => {
             ignore = true;
         };
     }, [id]);
 
-    // Upload image and persist imageUrl
+    /* ---------------------------------------------------------
+       Image Upload
+    --------------------------------------------------------- */
     async function handleImageUpload(file) {
-        if (!file) return;
-        if (!recipe?.id) return;
+        if (!file || !recipe?.id) return;
 
-        setError("");
         setBusy(true);
+        setError("");
 
         try {
-            const fd = new FormData();
-            fd.append("file", file);
+            const formData = new FormData();
+            formData.append("file", file);
 
-            // 1) Upload
-            const upRes = await fetch(`${API_BASE}/api/recipes/${recipe.id}/image`, {
+            // 1) Bild hochladen
+            const uploadResponse = await fetch(`${API_BASE}/api/recipes/${recipe.id}/image`, {
                 method: "POST",
-                body: fd,
+                body: formData,
             });
 
-            if (!upRes.ok) {
-                const text = await upRes.text().catch(() => "");
-                throw new Error(text || `Upload fehlgeschlagen (HTTP ${upRes.status})`);
+            if (!uploadResponse.ok) {
+                const text = await uploadResponse.text().catch(() => "");
+                throw new Error(text || `Upload fehlgeschlagen (HTTP ${uploadResponse.status})`);
             }
 
-            // Backend liefert bei dir einen String wie "/images/xyz.jpg"
-            const imageUrl = await upRes.text();
-            const cleanImageUrl = (imageUrl || "").replaceAll('"', "").trim();
+            const uploadedImageUrl = await uploadResponse.text();
+            const cleanImageUrl = (uploadedImageUrl || "").replaceAll('"', "").trim();
 
-            // 2) Persist imageUrl via PUT (alle Felder mitsenden, die RecipeController erwartet)
-            //    -> wir nehmen das aktuell geladene recipe als Basis.
+            // 2) Rezept mit neuer imageUrl speichern
             const payload = {
                 ...recipe,
                 imageUrl: cleanImageUrl,
-                // Categories in der Form, wie dein Backend sie mag: [{name:"..."}]
                 categories: normalizeCategories(recipe.categories).map((name) => ({ name })),
             };
 
-            const putRes = await fetch(`${API_BASE}/api/recipes/${recipe.id}`, {
+            const updateResponse = await fetch(`${API_BASE}/api/recipes/${recipe.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
 
-            if (!putRes.ok) {
-                const text = await putRes.text().catch(() => "");
-                throw new Error(text || `Speichern fehlgeschlagen (HTTP ${putRes.status})`);
+            if (!updateResponse.ok) {
+                const text = await updateResponse.text().catch(() => "");
+                throw new Error(text || `Speichern fehlgeschlagen (HTTP ${updateResponse.status})`);
             }
 
-            const updated = await putRes.json().catch(() => null);
+            const updatedRecipe = await updateResponse.json().catch(() => null);
 
-            // Local state aktualisieren (robust)
             setRecipe((prev) => ({
-                ...(updated || prev),
-                imageUrl: (updated?.imageUrl ?? cleanImageUrl),
+                ...(updatedRecipe || prev),
+                imageUrl: updatedRecipe?.imageUrl ?? cleanImageUrl,
             }));
         } catch (err) {
             setError(err?.message || "Fehler beim Bild-Upload.");
@@ -190,10 +286,28 @@ export default function Recipes() {
         }
     }
 
+    /* ---------------------------------------------------------
+       Navigation Actions
+    --------------------------------------------------------- */
     function handleFilterByCategory(label) {
         navigate(`/recipes?category=${encodeURIComponent(label)}`);
     }
 
+    function handleEdit() {
+        navigate(`/recipes/edit/${recipe.id}`);
+    }
+
+    function handleBack() {
+        navigate("/recipes");
+    }
+
+    function handlePdfDownload() {
+        window.open(`${API_BASE}/api/recipes/${recipe.id}/pdf`, "_blank");
+    }
+
+    /* ---------------------------------------------------------
+       Render States
+    --------------------------------------------------------- */
     if (loading) {
         return (
             <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
@@ -206,6 +320,7 @@ export default function Recipes() {
         return (
             <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
                 <h1>Rezept</h1>
+
                 <div
                     role="alert"
                     style={{
@@ -218,8 +333,9 @@ export default function Recipes() {
                 >
                     {error || "Rezept nicht gefunden."}
                 </div>
+
                 <div style={{ marginTop: 12 }}>
-                    <button className="btn" onClick={() => navigate("/recipes")}>
+                    <button className="btn" onClick={handleBack}>
                         Zurück zur Liste
                     </button>
                 </div>
@@ -227,22 +343,19 @@ export default function Recipes() {
         );
     }
 
-    const categories = normalizeCategories(recipe.categories);
-    const imageSrc = getRecipeImageUrl(recipe);
-
-/* -------------------------------------------------------------
-   Render
-------------------------------------------------------------- */    
+    /* ---------------------------------------------------------
+       Main Render
+    --------------------------------------------------------- */
     return (
         <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
-            {/* 1) Title + Kategorien + Actions */}
-            <div style={{ display: "flex", alignItems: "start", gap: 12, flexWrap: "wrap" }}>
+            {/* Titel */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ flex: "1 1 520px" }}>
                     <h1 style={{ margin: 0 }}>{recipe.title}</h1>
                 </div>
             </div>
 
-            {/* Error */}
+            {/* Fehlermeldung */}
             {error ? (
                 <div
                     role="alert"
@@ -258,7 +371,7 @@ export default function Recipes() {
                 </div>
             ) : null}
 
-            {/* 2) Image + Upload */}
+            {/* Bild + Upload */}
             <div style={{ marginTop: 14 }}>
                 <img
                     src={imageSrc}
@@ -294,13 +407,7 @@ export default function Recipes() {
             {/* Kategorien */}
             {categories.length > 0 ? (
                 <div style={{ marginTop: 14 }}>
-                    <div
-                        style={{
-                            display: "flex",
-                            gap: 8,
-                            flexWrap: "wrap",
-                        }}
-                    >
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         {categories.map((label) => (
                             <CategoryBadge
                                 key={label}
@@ -313,12 +420,12 @@ export default function Recipes() {
                 </div>
             ) : (
                 <p style={{ marginTop: 14, fontSize: 12, opacity: 0.7 }}>
-                    Keine Kategorie
+                    Keine Kategorie vorhanden
                 </p>
             )}
 
-            {/* Ingredients */}
-            {recipe.ingredients ? (
+            {/* Zutaten */}
+            {ingredientLines.length > 0 ? (
                 <div style={{ marginTop: 16 }}>
                     <h3 style={{ marginBottom: 8 }}>Zutaten</h3>
                     <ul
@@ -327,35 +434,35 @@ export default function Recipes() {
                             padding: 12,
                             borderRadius: 10,
                             background: "#f6f6f6",
-                            whiteSpace: "pre-wrap",
-                            fontFamily: "inherit",
-                            textAlign: "left",
                             fontSize: 14,
-
-                        }}>
-                        {parseIngredients(recipe.ingredients).map((ingredient) => (
-                            <li key={ingredient}>{ingredient}</li>
+                            textAlign: "left",
+                        }}
+                    >
+                        {ingredientLines.map((ingredient, index) => (
+                            <li key={`${ingredient}-${index}`}>{ingredient}</li>
                         ))}
                     </ul>
                 </div>
             ) : null}
 
-            {/* Description */}
+            {/* Beschreibung */}
             {recipe.description ? (
                 <div style={{ marginTop: 16 }}>
                     <h3 style={{ marginBottom: 8 }}>Beschreibung</h3>
-                    <p style={{ marginTop: 0, whiteSpace: "pre-wrap", textAlign: "left" }}>{recipe.description}</p>
+                    <p style={{ marginTop: 0, whiteSpace: "pre-wrap", textAlign: "left" }}>
+                        {recipe.description}
+                    </p>
                 </div>
             ) : null}
 
-            {/* Details */}
+            {/* Metadaten */}
             <div style={{ marginTop: 16 }}>
                 <h3 style={{ marginBottom: 8 }}>Details</h3>
 
                 <div
                     style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(3, 1fr)",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                         gap: 12,
                     }}
                 >
@@ -371,51 +478,24 @@ export default function Recipes() {
                 </div>
             </div>
 
-
-            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-                <button
-                    className="btn primary"
-                    onClick={() => navigate(`/recipes/edit/${recipe.id}`)}
-                >
+            {/* Aktionen */}
+            <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+                <button className="btn primary" onClick={handleEdit}>
                     Bearbeiten
                 </button>
 
-                <button className="btn" onClick={() => navigate("/recipes")}>
+                <button className="btn" onClick={handleBack}>
                     Zurück
                 </button>
-                <button onClick={() => window.open(`http://localhost:8081/api/recipes/${recipe.id}/pdf`, "_blank")} className="btn">
+
+                <button className="btn" onClick={handlePdfDownload}>
                     PDF herunterladen
                 </button>
+                
             </div>
-
-        </div>
-    );
-
-}
-
-function Meta({ label, value }) {
-    const display =
-        value === null || value === undefined || value === "" ? "—" : String(value);
-
-    return (
-        <div
-            style={{
-                border: "1px solid #eee",
-                borderRadius: 12,
-                padding: 12,
-                background: "white",
-            }}
-        >
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{label}</div>
-            <div style={{ fontWeight: 600 }}>{display}</div>
         </div>
     );
 }
-
-Meta.propTypes = {
-    label: PropTypes.string.isRequired,
-    value: PropTypes.any,
-};
 /* -------------------------------------------------------------
    Ende
 ------------------------------------------------------------- */

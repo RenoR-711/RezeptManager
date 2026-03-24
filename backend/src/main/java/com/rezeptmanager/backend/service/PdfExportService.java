@@ -1,14 +1,18 @@
 package com.rezeptmanager.backend.service;
 
 import com.rezeptmanager.backend.model.Recipe;
-import org.apache.pdfbox.pdmodel.*;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -16,319 +20,434 @@ import java.nio.file.Paths;
 @Service
 public class PdfExportService {
 
-    // Layout-Konstanten
+    /*
+     * =========================================================
+     * PDF-LAYOUT
+     * =========================================================
+     */
+
     private static final PDRectangle PAGE_SIZE = PDRectangle.A4;
     private static final float MARGIN = 50f;
-    private static final float HEADER_H = 52f;
-    private static final float GUTTER = 14f;
+    private static final float HEADER_HEIGHT = 52f;
+    private static final float CONTENT_TOP = PAGE_SIZE.getHeight() - MARGIN - HEADER_HEIGHT;
+    private static final float CONTENT_BOTTOM = MARGIN;
 
-    private static final float CONTENT_TOP = PAGE_SIZE.getHeight() - MARGIN - HEADER_H; // Start unter Header
-    private static final float CONTENT_BOTTOM = MARGIN; // Unterkante
+    /*
+     * =========================================================
+     * ABSTÄNDE / TYPOGRAFIE
+     * =========================================================
+     */
 
-    // Bild
-    private static final float IMAGE_MAX_W = 300f;
-    private static final float IMAGE_MAX_H = 180f;
+    private static final float SECTION_TITLE_SPACING = 28f;
+    private static final float SECTION_AFTER_TITLE_OFFSET = 18f;
+    private static final float DEFAULT_VERTICAL_SPACER = 10f;
 
-    // Farben (dezentes Layout)
+    private static final float BODY_FONT_SIZE = 11f;
+    private static final float BODY_LEADING = 14f;
+    private static final float SECTION_TITLE_FONT_SIZE = 13f;
+    private static final float HEADER_TITLE_FONT_SIZE = 18f;
+
+    /*
+     * =========================================================
+     * BILD-LAYOUT
+     * =========================================================
+     */
+
+    private static final float IMAGE_MAX_WIDTH = 300f;
+    private static final float IMAGE_MAX_HEIGHT = 180f;
+    private static final float IMAGE_BLOCK_SPACING = 14f;
+
+    /*
+     * =========================================================
+     * FARBEN
+     * =========================================================
+     */
+
     private static final Color COLOR_HEADER_BG = new Color(245, 246, 248);
     private static final Color COLOR_LINE = new Color(220, 224, 230);
     private static final Color COLOR_TEXT = new Color(30, 30, 30);
-    private static final Color COLOR_SUB = new Color(90, 90, 90);
+    private static final Color COLOR_SUBTEXT = new Color(90, 90, 90);
 
-    // Pfade
-    private static final String UPLOADS_DIR = "uploads"; // bei dir ggf. "uploads/images"
+    /*
+     * =========================================================
+     * DATEI-PFADE
+     * =========================================================
+     */
+
+    private static final String UPLOADS_DIR = "uploads";
     private static final String FALLBACK_CLASSPATH = "/pdf/fallback-recipe.jpg";
 
+    /*
+     * =========================================================
+     * ÖFFENTLICHE API
+     * =========================================================
+     */
+
+    /**
+     * Erstellt ein PDF für ein Rezept.
+     * Enthalten sind:
+     * - Header mit Titel
+     * - Rezeptbild (Upload oder Fallback)
+     * - Zutaten
+     * - Beschreibung
+     */
     public byte[] exportRecipeToPdf(Recipe recipe) {
-        try (PDDocument doc = new PDDocument()) {
-            PageCtx ctx = newPage(doc, safeTitle(recipe));
+        try (PDDocument document = new PDDocument()) {
+            String recipeTitle = safeTitle(recipe);
+            PageContext pageContext = createNewPage(document, recipeTitle);
 
-            // --- Bild (Upload oder Fallback) ---
-            ctx = drawRecipeImage(doc, ctx, recipe);
+            pageContext = drawRecipeImage(document, pageContext, recipe);
+            pageContext = drawSectionTitle(document, pageContext, "Zutaten");
+            pageContext = drawMultilineText(document, pageContext, nullSafe(recipe.getIngredients()));
 
-            // --- Sections ---
-            ctx = drawSectionTitle(doc, ctx, "Zutaten");
-            ctx = drawMultilineText(doc, ctx, nullSafe(recipe.getIngredients()));
+            pageContext = addVerticalSpace(pageContext, DEFAULT_VERTICAL_SPACER);
 
-            ctx = addVerticalSpace(ctx, 10);
+            pageContext = drawSectionTitle(document, pageContext, "Beschreibung");
+            pageContext = drawMultilineText(document, pageContext, nullSafe(recipe.getDescription()));
 
-            ctx = drawSectionTitle(doc, ctx, "Beschreibung");
-            ctx = drawMultilineText(doc, ctx, nullSafe(recipe.getDescription()));
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            document.save(outputStream);
+            return outputStream.toByteArray();
 
-            // optional: rawText
-            // ctx = addVerticalSpace(ctx, 10);
-            // ctx = drawSectionTitle(doc, ctx, "Notizen");
-            // ctx = drawMultilineText(doc, ctx, nullSafe(recipe.getRawText()));
-
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            doc.save(out);
-            return out.toByteArray();
-
-        } catch (IOException e) {
-            throw new RuntimeException("PDF-Erstellung fehlgeschlagen", e);
+        } catch (IOException exception) {
+            throw new RuntimeException("PDF-Erstellung fehlgeschlagen", exception);
         }
     }
 
     /*
-     * =========================
-     * Page + Header
-     * =========================
+     * =========================================================
+     * SEITENAUFBAU
+     * =========================================================
      */
 
-    private PageCtx newPage(PDDocument doc, String title) throws IOException {
+    /**
+     * Erstellt eine neue PDF-Seite inklusive Header.
+     */
+    private PageContext createNewPage(PDDocument document, String headerTitle) throws IOException {
         PDPage page = new PDPage(PAGE_SIZE);
-        doc.addPage(page);
+        document.addPage(page);
 
-        PDPageContentStream cs = new PDPageContentStream(doc, page);
-        // Header Hintergrund
-        cs.setNonStrokingColor(COLOR_HEADER_BG);
-        cs.addRect(0, PAGE_SIZE.getHeight() - HEADER_H, PAGE_SIZE.getWidth(), HEADER_H);
-        cs.fill();
+        try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+            drawHeader(contentStream, headerTitle);
+        }
 
-        // Header Linie unten
-        cs.setStrokingColor(COLOR_LINE);
-        cs.setLineWidth(1f);
-        cs.moveTo(0, PAGE_SIZE.getHeight() - HEADER_H);
-        cs.lineTo(PAGE_SIZE.getWidth(), PAGE_SIZE.getHeight() - HEADER_H);
-        cs.stroke();
+        return new PageContext(page, CONTENT_TOP, headerTitle);
+    }
 
-        // Titel im Header
-        cs.setNonStrokingColor(COLOR_TEXT);
-        writeText(cs, PDType1Font.HELVETICA_BOLD, 18,
-                MARGIN, PAGE_SIZE.getHeight() - 34, title);
+    /**
+     * Zeichnet den Kopfbereich der Seite.
+     */
+    private void drawHeader(PDPageContentStream contentStream, String title) throws IOException {
+        float pageWidth = PAGE_SIZE.getWidth();
+        float pageHeight = PAGE_SIZE.getHeight();
+        float headerBottomY = pageHeight - HEADER_HEIGHT;
 
-        // Kleine Subtitle (optional)
-        // writeText(cs, PDType1Font.HELVETICA, 10, MARGIN, PAGE_SIZE.getHeight() - 46,
-        // "RezeptManager Export");
+        // Header-Hintergrund
+        contentStream.setNonStrokingColor(COLOR_HEADER_BG);
+        contentStream.addRect(0, headerBottomY, pageWidth, HEADER_HEIGHT);
+        contentStream.fill();
 
-        cs.close();
+        // Untere Header-Linie
+        contentStream.setStrokingColor(COLOR_LINE);
+        contentStream.setLineWidth(1f);
+        contentStream.moveTo(0, headerBottomY);
+        contentStream.lineTo(pageWidth, headerBottomY);
+        contentStream.stroke();
 
-        return new PageCtx(page, CONTENT_TOP);
+        // Titel
+        contentStream.setNonStrokingColor(COLOR_TEXT);
+        writeText(
+                contentStream,
+                PDType1Font.HELVETICA_BOLD,
+                HEADER_TITLE_FONT_SIZE,
+                MARGIN,
+                pageHeight - 34,
+                title);
     }
 
     /*
-     * =========================
-     * Image (Upload + Fallback)
-     * =========================
+     * =========================================================
+     * BILD-RENDERING
+     * =========================================================
      */
 
-    private PageCtx drawRecipeImage(PDDocument doc, PageCtx ctx, Recipe recipe) throws IOException {
-        PDImageXObject img = loadRecipeImage(doc, recipe);
+    /**
+     * Zeichnet das Rezeptbild. Verwendet zuerst ein hochgeladenes Bild,
+     * andernfalls ein Fallback-Bild aus den Ressourcen.
+     */
+    private PageContext drawRecipeImage(PDDocument document, PageContext context, Recipe recipe) throws IOException {
+        PDImageXObject image = loadRecipeImage(document, recipe);
 
-        if (img == null) {
-            return ctx; // zur Sicherheit
+        if (image == null) {
+            return context;
         }
 
-        // Platz prüfen + ggf. neue Seite
-        float needed = IMAGE_MAX_H + 14f;
-        ctx = ensureSpace(doc, ctx, needed, safeTitle(recipe));
+        float requiredHeight = IMAGE_MAX_HEIGHT + IMAGE_BLOCK_SPACING;
+        context = ensureSpace(document, context, requiredHeight);
 
-        // Skalierung proportional in maxW/maxH
-        float iw = img.getWidth();
-        float ih = img.getHeight();
-        float scale = Math.min(IMAGE_MAX_W / iw, IMAGE_MAX_H / ih);
+        float originalWidth = image.getWidth();
+        float originalHeight = image.getHeight();
+        float scale = Math.min(IMAGE_MAX_WIDTH / originalWidth, IMAGE_MAX_HEIGHT / originalHeight);
 
-        float drawW = iw * scale;
-        float drawH = ih * scale;
+        float drawWidth = originalWidth * scale;
+        float drawHeight = originalHeight * scale;
 
         float x = MARGIN;
-        float yTop = ctx.y; // ctx.y ist "aktueller Top-Anchor"
-        float y = yTop - drawH;
+        float y = context.y - drawHeight;
 
-        try (PDPageContentStream cs = new PDPageContentStream(doc, ctx.page, PDPageContentStream.AppendMode.APPEND,
+        try (PDPageContentStream contentStream = new PDPageContentStream(
+                document,
+                context.page,
+                PDPageContentStream.AppendMode.APPEND,
                 true)) {
+            // Rahmen
+            contentStream.setStrokingColor(COLOR_LINE);
+            contentStream.setLineWidth(1f);
+            contentStream.addRect(x - 6, y - 6, drawWidth + 12, drawHeight + 12);
+            contentStream.stroke();
 
-            // Rahmen (Card-Look)
-            cs.setStrokingColor(COLOR_LINE);
-            cs.setLineWidth(1f);
-            cs.addRect(x - 6, y - 6, drawW + 12, drawH + 12);
-            cs.stroke();
+            // Bild
+            contentStream.drawImage(image, x, y, drawWidth, drawHeight);
 
-            cs.drawImage(img, x, y, drawW, drawH);
-
-            // Trennlinie unter Bild
+            // Trennlinie
             float lineY = y - 12;
-            cs.setStrokingColor(COLOR_LINE);
-            cs.setLineWidth(1f);
-            cs.moveTo(MARGIN, lineY);
-            cs.lineTo(PAGE_SIZE.getWidth() - MARGIN, lineY);
-            cs.stroke();
+            contentStream.setStrokingColor(COLOR_LINE);
+            contentStream.setLineWidth(1f);
+            contentStream.moveTo(MARGIN, lineY);
+            contentStream.lineTo(PAGE_SIZE.getWidth() - MARGIN, lineY);
+            contentStream.stroke();
         }
 
-        ctx.y = y - 24; // unter Bild + Abstand
-        return ctx;
+        context.y = y - 24;
+        return context;
     }
 
-    private PDImageXObject loadRecipeImage(PDDocument doc, Recipe recipe) throws IOException {
-        // 1) Upload-Datei
-        String sf = recipe.getSourceFile();
-        if (sf != null && !sf.isBlank()) {
-            Path p = Paths.get(UPLOADS_DIR, sf);
-            if (Files.exists(p)) {
-                return PDImageXObject.createFromFile(p.toString(), doc);
+    /**
+     * Lädt das Rezeptbild aus dem Upload-Verzeichnis oder aus den Ressourcen.
+     */
+    private PDImageXObject loadRecipeImage(PDDocument document, Recipe recipe) throws IOException {
+        String sourceFile = recipe.getSourceFile();
+
+        // 1) Bild aus Uploads
+        if (sourceFile != null && !sourceFile.isBlank()) {
+            Path imagePath = Paths.get(UPLOADS_DIR, sourceFile);
+            if (Files.exists(imagePath)) {
+                return PDImageXObject.createFromFile(imagePath.toString(), document);
             }
         }
 
-        // 2) Fallback aus resources
-        try (InputStream is = getClass().getResourceAsStream(FALLBACK_CLASSPATH)) {
-            if (is == null)
+        // 2) Fallback-Bild aus resources
+        try (InputStream inputStream = getClass().getResourceAsStream(FALLBACK_CLASSPATH)) {
+            if (inputStream == null) {
                 return null;
-            byte[] bytes = is.readAllBytes();
-            return PDImageXObject.createFromByteArray(doc, bytes, "fallback");
+            }
+
+            byte[] imageBytes = inputStream.readAllBytes();
+            return PDImageXObject.createFromByteArray(document, imageBytes, "fallback-recipe-image");
         }
     }
 
     /*
-     * =========================
-     * Sections + Text + Pagebreak
-     * =========================
+     * =========================================================
+     * SEKTIONEN / TEXT
+     * =========================================================
      */
 
-    private PageCtx drawSectionTitle(PDDocument doc, PageCtx ctx, String title) throws IOException {
-        // Höhe für Titel + Linie
-        ctx = ensureSpace(doc, ctx, 28f, ctx.headerTitle);
+    /**
+     * Zeichnet eine Sektionsüberschrift mit Trennlinie.
+     */
+    private PageContext drawSectionTitle(PDDocument document, PageContext context, String title) throws IOException {
+        context = ensureSpace(document, context, SECTION_TITLE_SPACING);
 
-        try (PDPageContentStream cs = new PDPageContentStream(doc, ctx.page, PDPageContentStream.AppendMode.APPEND,
+        try (PDPageContentStream contentStream = new PDPageContentStream(
+                document,
+                context.page,
+                PDPageContentStream.AppendMode.APPEND,
                 true)) {
-            cs.setNonStrokingColor(COLOR_TEXT);
-            writeText(cs, PDType1Font.HELVETICA_BOLD, 13, MARGIN, ctx.y, title);
+            contentStream.setNonStrokingColor(COLOR_TEXT);
+            writeText(
+                    contentStream,
+                    PDType1Font.HELVETICA_BOLD,
+                    SECTION_TITLE_FONT_SIZE,
+                    MARGIN,
+                    context.y,
+                    title);
 
-            // dünne Linie rechts daneben (optischer Akzent)
-            float lineY = ctx.y - 6;
-            cs.setStrokingColor(COLOR_LINE);
-            cs.setLineWidth(1f);
-            cs.moveTo(MARGIN, lineY);
-            cs.lineTo(PAGE_SIZE.getWidth() - MARGIN, lineY);
-            cs.stroke();
+            float lineY = context.y - 6;
+            contentStream.setStrokingColor(COLOR_LINE);
+            contentStream.setLineWidth(1f);
+            contentStream.moveTo(MARGIN, lineY);
+            contentStream.lineTo(PAGE_SIZE.getWidth() - MARGIN, lineY);
+            contentStream.stroke();
         }
 
-        ctx.y -= 18f;
-        return ctx;
+        context.y -= SECTION_AFTER_TITLE_OFFSET;
+        return context;
     }
 
-    private PageCtx drawMultilineText(PDDocument doc, PageCtx ctx, String text) throws IOException {
-        // Basic Wrap (für HELVETICA 11)
-        final float fontSize = 11f;
-        final float leading = 14f;
-        final float maxWidth = PAGE_SIZE.getWidth() - 2 * MARGIN;
+    /**
+     * Zeichnet mehrzeiligen Fließtext mit automatischem Zeilenumbruch
+     * und Seitenumbruch bei Platzmangel.
+     */
+    private PageContext drawMultilineText(PDDocument document, PageContext context, String text) throws IOException {
+        float maxWidth = PAGE_SIZE.getWidth() - (2 * MARGIN);
+        String[] paragraphs = text.split("\\R");
 
-        String[] paragraphs = text.split("\\R"); // \n oder \r\n
-        for (String para : paragraphs) {
-            // leere Zeile -> Abstand
-            if (para.trim().isEmpty()) {
-                ctx = ensureSpace(doc, ctx, leading, ctx.headerTitle);
-                ctx.y -= leading;
+        for (String paragraph : paragraphs) {
+            // Leerzeile
+            if (paragraph.trim().isEmpty()) {
+                context = ensureSpace(document, context, BODY_LEADING);
+                context.y -= BODY_LEADING;
                 continue;
             }
 
-            for (String line : wrapLine(para, PDType1Font.HELVETICA, fontSize, maxWidth)) {
-                ctx = ensureSpace(doc, ctx, leading, ctx.headerTitle);
+            String[] wrappedLines = wrapLine(paragraph, PDType1Font.HELVETICA, BODY_FONT_SIZE, maxWidth);
 
-                try (PDPageContentStream cs = new PDPageContentStream(doc, ctx.page,
-                        PDPageContentStream.AppendMode.APPEND, true)) {
-                    cs.setNonStrokingColor(COLOR_SUB);
-                    writeText(cs, PDType1Font.HELVETICA, fontSize, MARGIN, ctx.y, line);
+            for (String line : wrappedLines) {
+                context = ensureSpace(document, context, BODY_LEADING);
+
+                try (PDPageContentStream contentStream = new PDPageContentStream(
+                        document,
+                        context.page,
+                        PDPageContentStream.AppendMode.APPEND,
+                        true)) {
+                    contentStream.setNonStrokingColor(COLOR_SUBTEXT);
+                    writeText(
+                            contentStream,
+                            PDType1Font.HELVETICA,
+                            BODY_FONT_SIZE,
+                            MARGIN,
+                            context.y,
+                            line);
                 }
 
-                ctx.y -= leading;
+                context.y -= BODY_LEADING;
             }
         }
 
-        return ctx;
+        return context;
     }
 
-    private PageCtx ensureSpace(PDDocument doc, PageCtx ctx, float neededHeight, String titleForHeader)
-            throws IOException {
-        if (ctx.y - neededHeight < CONTENT_BOTTOM) {
-            // neue Seite
-            return newPage(doc, titleForHeader);
+    /**
+     * Fügt vertikalen Abstand hinzu.
+     */
+    private PageContext addVerticalSpace(PageContext context, float spacing) {
+        context.y -= spacing;
+        return context;
+    }
+
+    /**
+     * Prüft, ob auf der aktuellen Seite noch genug Platz vorhanden ist.
+     * Falls nicht, wird automatisch eine neue Seite erzeugt.
+     */
+    private PageContext ensureSpace(PDDocument document, PageContext context, float requiredHeight) throws IOException {
+        if (context.y - requiredHeight < CONTENT_BOTTOM) {
+            return createNewPage(document, context.headerTitle);
         }
-        return ctx;
-    }
-
-    private PageCtx addVerticalSpace(PageCtx ctx, float space) {
-        ctx.y -= space;
-        return ctx;
+        return context;
     }
 
     /*
-     * =========================
-     * Text helpers
-     * =========================
+     * =========================================================
+     * TEXT-HELPER
+     * =========================================================
      */
 
-    private void writeText(PDPageContentStream cs,
+    /**
+     * Schreibt eine einzelne Textzeile an eine feste Position.
+     */
+    private void writeText(
+            PDPageContentStream contentStream,
             PDType1Font font,
             float fontSize,
-            float x, float y,
+            float x,
+            float y,
             String text) throws IOException {
-        cs.beginText();
-        cs.setFont(font, fontSize);
-        cs.newLineAtOffset(x, y);
-        cs.showText(sanitize(text));
-        cs.endText();
+        contentStream.beginText();
+        contentStream.setFont(font, fontSize);
+        contentStream.newLineAtOffset(x, y);
+        contentStream.showText(sanitize(text));
+        contentStream.endText();
     }
 
+    /**
+     * Führt einen einfachen Wortumbruch anhand der maximalen Zeilenbreite aus.
+     */
     private String[] wrapLine(String text, PDType1Font font, float fontSize, float maxWidth) throws IOException {
-        // einfache Wort-Umbruch-Logik
         String[] words = text.split("\\s+");
-        StringBuilder line = new StringBuilder();
+        StringBuilder currentLine = new StringBuilder();
         java.util.List<String> lines = new java.util.ArrayList<>();
 
-        for (String w : words) {
-            String candidate = line.length() == 0 ? w : line + " " + w;
-            float width = font.getStringWidth(candidate) / 1000f * fontSize;
+        for (String word : words) {
+            String candidate = currentLine.length() == 0
+                    ? word
+                    : currentLine + " " + word;
 
-            if (width <= maxWidth) {
-                line.setLength(0);
-                line.append(candidate);
+            float candidateWidth = font.getStringWidth(candidate) / 1000f * fontSize;
+
+            if (candidateWidth <= maxWidth) {
+                currentLine.setLength(0);
+                currentLine.append(candidate);
             } else {
-                if (line.length() > 0)
-                    lines.add(line.toString());
-                line.setLength(0);
-                line.append(w);
+                if (currentLine.length() > 0) {
+                    lines.add(currentLine.toString());
+                }
+                currentLine.setLength(0);
+                currentLine.append(word);
             }
         }
-        if (line.length() > 0)
-            lines.add(line.toString());
+
+        if (currentLine.length() > 0) {
+            lines.add(currentLine.toString());
+        }
 
         return lines.toArray(new String[0]);
     }
 
-    private String nullSafe(String s) {
-        return s == null ? "" : s.trim();
-    }
-
-    private String safeTitle(Recipe r) {
-        String t = (r == null ? null : r.getTitle());
-        if (t == null || t.isBlank())
-            return "Rezept";
-        return t.trim();
-    }
-
-    // PDFBox mag keine Steuerzeichen; außerdem Anführungszeichen/Unicode kann man
-    // erstmal drin lassen
-    private String sanitize(String s) {
-        if (s == null)
+    /**
+     * Entfernt problematische Steuerzeichen für PDFBox.
+     */
+    private String sanitize(String text) {
+        if (text == null) {
             return "";
-        return s.replaceAll("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]", "");
+        }
+
+        return text.replaceAll("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F]", "");
+    }
+
+    /**
+     * Verhindert Null-Werte und trimmt Strings.
+     */
+    private String nullSafe(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    /**
+     * Liefert einen sicheren PDF-Titel.
+     */
+    private String safeTitle(Recipe recipe) {
+        String title = recipe == null ? null : recipe.getTitle();
+        return (title == null || title.isBlank()) ? "Rezept" : title.trim();
     }
 
     /*
-     * =========================
-     * Page context holder
-     * =========================
+     * =========================================================
+     * KONTEXTKLASSE FÜR DIE AKTUELLE SEITE
+     * =========================================================
      */
 
-    private static class PageCtx {
-        PDPage page;
-        float y;
-        String headerTitle;
+    /**
+     * Hält den aktuellen Seitenzustand während des PDF-Aufbaus.
+     */
+    private static class PageContext {
+        private final PDPage page;
+        private float y;
+        private final String headerTitle;
 
-        PageCtx(PDPage page, float y) {
+        private PageContext(PDPage page, float y, String headerTitle) {
             this.page = page;
             this.y = y;
-            this.headerTitle = "Rezept";
+            this.headerTitle = headerTitle;
         }
     }
 }

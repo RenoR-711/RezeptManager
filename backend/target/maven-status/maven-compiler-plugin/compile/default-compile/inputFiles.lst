@@ -5,7 +5,12 @@ D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backen
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\controller\ScanController.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\dto\ParsedRecipe.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\dto\ProductData.java
+D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\dto\RecipeRequestDto.java
+D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\dto\RecipeResponseDto.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\exception\ImageStorageException.java
+D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\exception\TextExtractionException.java
+D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\mapper\RecipeMapper.java
+D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\mapper\ScanRecipeMapper.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\model\Category.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\model\DifficultyLevel.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\model\Recipe.java
@@ -15,4 +20,6 @@ D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backen
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\ImageStorageService.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\IngredientParserService.java
 D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\PdfExportService.java
-D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\PdfTextExtractorService.java
+D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\RecipeService.java
+D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\ScanService.java
+D:\React-SpringBoot\RezeptManager\backend\src\main\java\com\rezeptmanager\backend\service\TextExtractorService.java

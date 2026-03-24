@@ -1,10 +1,11 @@
 package com.rezeptmanager.backend.controller;
 
+import com.rezeptmanager.backend.service.ImageStorageService;
+import com.rezeptmanager.backend.service.RecipeService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.rezeptmanager.backend.service.ImageStorageService;
 
 import java.util.Map;
 
@@ -13,18 +14,34 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:5173")
 public class ImageController {
 
-    
     private final ImageStorageService imageStorageService;
-    
-    public ImageController(ImageStorageService imageStorageService) {
+    private final RecipeService recipeService;
+
+    public ImageController(
+            ImageStorageService imageStorageService,
+            RecipeService recipeService) {
         this.imageStorageService = imageStorageService;
+        this.recipeService = recipeService;
     }
 
+    /*
+     * -------------------------------------------------------------
+     * Rezeptbild hochladen
+     * -------------------------------------------------------------
+     */
+
     @PostMapping(value = "/recipes/{recipeId}", consumes = "multipart/form-data")
-    public ResponseEntity<Map<String, String>> saveRecipeImage(
+    public ResponseEntity<Map<String, String>> uploadRecipeImage(
             @PathVariable Long recipeId,
             @RequestParam("file") MultipartFile file) {
-        String imagePath = imageStorageService.storeImage(recipeId, file);
-        return ResponseEntity.ok(Map.of("imagePath", imagePath));
+
+        recipeService.findById(recipeId);
+
+        String imageUrl = imageStorageService.storeImage(recipeId, file);
+        recipeService.updateImageUrl(recipeId, imageUrl);
+
+        return ResponseEntity.ok(Map.of(
+                "imageUrl", imageUrl,
+                "message", "Bild erfolgreich gespeichert."));
     }
 }
