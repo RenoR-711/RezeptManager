@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Optional;
 
 @Service
 public class ImageStorageService {
@@ -17,7 +16,6 @@ public class ImageStorageService {
     private final Path root = Paths.get("uploads");
 
     public String storeImage(Long recipeId, MultipartFile file) {
-
         if (recipeId == null) {
             throw new ImageStorageException("Recipe ID must not be null when storing an image.");
         }
@@ -26,11 +24,7 @@ public class ImageStorageService {
             throw new ImageStorageException("Image file is empty.");
         }
 
-        String ext = Optional.ofNullable(file.getOriginalFilename())
-                .filter(name -> name.contains("."))
-                .map(name -> name.substring(name.lastIndexOf(".")))
-                .orElse(".png");
-
+        String ext = extractAndValidateExtension(file);
         Path dir = root.resolve("recipes").resolve(String.valueOf(recipeId));
 
         try {
@@ -46,7 +40,22 @@ public class ImageStorageService {
             return "/uploads/recipes/" + recipeId + "/main" + ext;
 
         } catch (IOException e) {
-            throw new ImageStorageException("Could not save recipe image", e);
+            throw new ImageStorageException("Could not save recipe image.", e);
         }
+    }
+
+    private String extractAndValidateExtension(MultipartFile file) {
+        String filename = file.getOriginalFilename();
+
+        if (filename == null || !filename.contains(".")) {
+            throw new ImageStorageException("Image file extension is missing.");
+        }
+
+        String ext = filename.substring(filename.lastIndexOf(".")).toLowerCase();
+
+        return switch (ext) {
+            case ".jpg", ".jpeg", ".png", ".webp" -> ext;
+            default -> throw new ImageStorageException("Unsupported image format.");
+        };
     }
 }
