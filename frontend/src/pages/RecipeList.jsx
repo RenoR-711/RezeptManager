@@ -66,7 +66,7 @@ function normalizeRecipe(recipe) {
         ...recipe,
         title: recipe?.title ?? "",
         description: recipe?.description ?? "",
-        ingredients: recipe?.ingredients ?? "",
+        // ingredients: recipe?.ingredients ?? "",  //wird überschrieben
         categories: recipe?.categories ?? [],
         imageUrl: recipe?.imageUrl ?? "",
         ingredients: Array.isArray(recipe?.ingredients) ? recipe.ingredients : [],
@@ -135,18 +135,12 @@ function sortCategoryNames(categoryNames) {
 function SearchBox({ value, onChange }) {
     return (
         <input
+            className="recipe-search"
             type="text"
             placeholder="Suchen…"
             aria-label="Rezepte suchen"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            style={{
-                width: "100%",
-                padding: "0.6rem",
-                borderRadius: "8px",
-                border: "1px solid #ccc",
-                marginBottom: "1rem",
-            }}
         />
     );
 }
@@ -168,18 +162,11 @@ function CategoryBadge({ category, color }) {
 
     return (
         <button
+            className="category-badge"
             type="button"
             onClick={handleClick}
             aria-label={`Nach Kategorie filtern: ${label}`}
-            style={{
-                background: color || "#999",
-                color: "#fff",
-                padding: "2px 8px",
-                borderRadius: "12px",
-                fontSize: "0.7rem",
-                border: "none",
-                cursor: "pointer",
-            }}
+            style={{ background: color || "#999" }}
         >
             {label}
         </button>
@@ -202,56 +189,27 @@ function RecipeCard({ recipe, onDelete, badgeColors }) {
 
     return (
         <div
-            style={{
-                background: "#fff",
-                borderRadius: "12px",
-                boxShadow: "0 1px 6px rgba(0,0,0,0.15)",
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-            }}
+            className="recipe-card"
         >
             <Link
                 to={`/recipes/${recipe.id}`}
-                style={{
-                    textDecoration: "none",
-                    color: "inherit",
-                    display: "flex",
-                    flexDirection: "column",
-                    cursor: "pointer",
-                    outlineOffset: "3px",
-                    flexGrow: 1,
-                }}
+                className="recipe-card__link"
             >
                 <img
                     src={getRecipeImageUrl(recipe)}
                     alt={recipe.title}
-                    style={{
-                        width: "100%",
-                        height: "100px",
-                        objectFit: "cover",
-                    }}
+                    className="recipe-card__image"
                     loading="lazy"
                 />
 
                 <h4
-                    style={{
-                        textAlign: "center",
-                        margin: "0.75rem 0 0.5rem",
-                        padding: "0 0.5rem",
-                    }}
+                    className="recipe-card__title"
                 >
                     {recipe.title}
                 </h4>
 
                 <div
-                    style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "0.3rem",
-                        justifyContent: "center",
-                        padding: "0 0.5rem 0.75rem",
-                    }}
+                    className="recipe-card__categories"
                 >
                     {categories.map((category, index) => {
                         const label = getCategoryLabel(category);
@@ -268,18 +226,10 @@ function RecipeCard({ recipe, onDelete, badgeColors }) {
             </Link>
 
             <button
+                className="recipe-card__delete"
                 type="button"
                 onClick={() => onDelete(recipe.id)}
                 aria-label={`Rezept löschen: ${recipe.title}`}
-                style={{
-                    margin: "0.5rem",
-                    background: "#d9534f",
-                    color: "#fff",
-                    border: "none",
-                    padding: "0.45rem",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                }}
             >
                 🗑️
             </button>
@@ -307,23 +257,13 @@ function RecipeGroup({
     badgeColors,
 }) {
     return (
-        <section style={{ marginBottom: "1.5rem" }}>
+        <section className="recipe-group">
             <button
+                className="recipe-group__toggle"
                 type="button"
                 onClick={() => onToggle(category)}
                 aria-expanded={open}
                 aria-label={`Kategorie ${category} ${open ? "schließen" : "öffnen"}`}
-                style={{
-                    background: "#eee",
-                    padding: "0.4rem 0.8rem",
-                    borderRadius: "6px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    width: "100%",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    border: "none",
-                }}
             >
                 <span>{category}</span>
                 <span>{open ? "▾" : "▸"}</span>
@@ -331,12 +271,7 @@ function RecipeGroup({
 
             {open && (
                 <div
-                    style={{
-                        marginTop: "0.8rem",
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-                        gap: "1rem",
-                    }}
+                    className="recipe-group__grid"
                 >
                     {recipes.map((recipe) => (
                         <RecipeCard
@@ -492,10 +427,10 @@ export default function RecipeList() {
     ------------------------------------------------------------- */
 
     return (
-        <div className="page">
+        <div className="page recipe-list">
             <h2>Rezepte</h2>
 
-            {selectedCategory && (
+            {/* {selectedCategory && (
                 <p style={{ fontWeight: 600 }}>
                     Kategorie: {selectedCategory}
                     <button
@@ -506,11 +441,11 @@ export default function RecipeList() {
                         ✕
                     </button>
                 </p>
-            )}
+            )} */}
 
             <SearchBox value={search} onChange={setSearch} />
 
-            {categoryNames.length === 0 && <p>Keine Rezepte gefunden.</p>}
+            {categoryNames.length === 0 && <p className="recipe-list__empty">Keine Rezepte gefunden.</p>}
 
             {categoryNames.map((categoryName) => (
                 <RecipeGroup

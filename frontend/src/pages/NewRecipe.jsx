@@ -36,7 +36,8 @@ export default function NewRecipe() {
         event.preventDefault();
         setError("");
 
-        if (!form.title.trim()) {
+        // einfache Validierung
+        if (!form.title?.trim()) {
             setError("Bitte einen Titel eingeben.");
             return;
         }
@@ -72,6 +73,7 @@ export default function NewRecipe() {
                     imageUrl;
             }
 
+            // Formular -> API Payload
             const payload = buildPayloadFromForm(form, { imageUrl });
 
             const response = await fetch(`${API_BASE}/api/recipes`, {
@@ -131,8 +133,10 @@ export default function NewRecipe() {
         }));
     }
 
-    /* ---------------------------------------------------------
-       Render
+    /**
+     ---------------------------------------------------------
+    * UI: Formular
+    * Render
     --------------------------------------------------------- */
 
     return (

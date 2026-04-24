@@ -118,7 +118,7 @@ export const EMPTY_RECIPE_FORM = {
   ingredients: "",
   instructions: "",
   categories: [],
-  difficultyLevel: "",
+  difficultyLevel: "EASY",
   prepTimeMinutes: "",
   cookTimeMinutes: "",
   servings: "",

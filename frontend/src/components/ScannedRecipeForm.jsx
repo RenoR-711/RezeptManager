@@ -122,196 +122,162 @@ export default function ScannedRecipeForm({
     --------------------------------------------------------- */
 
     return (
-        <div style={{ marginTop: 32 }}>
-            <h2>Rezept prüfen</h2>
+        <div className="recipe-main">
 
-            {error ? (
-                <div
-                    role="alert"
-                    style={{
-                        marginBottom: 16,
-                        padding: 10,
-                        borderRadius: 8,
-                        background: "#ffe5e5",
-                        border: "1px solid #ffb3b3",
-                    }}
-                >
-                    {error}
-                </div>
-            ) : null}
+            <section className="form-section">
+                <h3>Rezept prüfen</h3>
 
-            <div
-                style={{
-                    display: "grid",
-                    gap: 20,
-                }}
-            >
-                <section>
-                    <label
-                        htmlFor="scan-title"
-                        style={{ display: "grid", gap: 6 }}
-                    >
-                        <span>Titel</span>
-                        <input
-                            id="scan-title"
-                            type="text"
-                            value={recipe?.title ?? ""}
-                            onChange={(event) => updateField("title", event.target.value)}
-                            disabled={saving}
-                        />
-                    </label>
-                </section>
-
-                {onImageUpload ? (
-                    <section>
-                        <label style={{ display: "grid", gap: 6 }}>
-                            <span>Rezeptbild</span>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={onImageUpload}
-                                disabled={saving}
-                            />
-                        </label>
-                    </section>
+                {/* Fehlermeldung */}
+                {error ? (
+                    <div
+                        role="alert"
+                        className="recipe-alert">
+                        {error}
+                    </div>
                 ) : null}
 
+                <label
+                    className="form-label"
+                    htmlFor="scan-title"
+                >
+                    <span>Titel</span>
+                    <input
+                        id="scan-title"
+                        type="text"
+                        value={recipe?.title ?? ""}
+                        onChange={(event) => updateField("title", event.target.value)}
+                        placeholder="z. B. Spaghetti Bolognese"
+                        disabled={saving}
+                    />
+                </label>
+
+
+                <label
+                    className="form-label"
+                    htmlFor="scan-description"
+                >
+                    <span>Zubereitung</span>
+                    <textarea
+                        id="scan-description"
+                        value={recipe?.description ?? ""}
+                        onChange={(event) =>
+                            updateField("description", event.target.value)
+                        }
+                        rows={15}
+                        disabled={saving}
+                    />
+                </label>
+            </section>
+
+            {onImageUpload ? (
                 <section>
-                    <span style={{ display: "block", marginBottom: 8 }}>
-                        Kategorien
-                    </span>
-
-                    <div
-                        style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 10,
-                        }}
-                    >
-                        {categoryOptions.map((categoryName) => {
-                            const selected = selectedCategories.includes(categoryName);
-
-                            return (
-                                <label
-                                    key={categoryName}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 6,
-                                        padding: "6px 10px",
-                                        borderRadius: 999,
-                                        border: "1px solid #ddd",
-                                        background: selected ? "#f3f3f3" : "#fff",
-                                    }}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={selected}
-                                        onChange={() => toggleCategory(categoryName)}
-                                        disabled={saving}
-                                    />
-                                    <span>{categoryName}</span>
-                                </label>
-                            );
-                        })}
-                    </div>
-                </section>
-
-                <section>
-                    <label
-                        htmlFor="scan-description"
-                        style={{ display: "grid", gap: 6 }}
-                    >
-                        <span>Beschreibung</span>
-                        <textarea
-                            id="scan-description"
-                            value={recipe?.description ?? ""}
-                            onChange={(event) =>
-                                updateField("description", event.target.value)
-                            }
-                            rows={4}
+                    <label style={{ display: "grid", gap: 6 }}>
+                        <span>Rezeptbild</span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={onImageUpload}
                             disabled={saving}
                         />
                     </label>
                 </section>
+            ) : null}
 
-                <section>
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: 12,
-                            marginBottom: 12,
-                            flexWrap: "wrap",
-                        }}
-                    >
-                        <h3 style={{ margin: 0 }}>Zutaten</h3>
+            {/* Zutaten */}
+            <section className="form-section">
+                <h3>Zutaten</h3>
 
-                        <button
-                            type="button"
-                            onClick={addIngredientRow}
-                            disabled={saving}
+                <button
+                    type="button"
+                    onClick={addIngredientRow}
+                    disabled={saving}
+                >
+                    + Zutat hinzufügen
+                </button>
+
+
+                <div>
+                    {ingredientRows.map((row, index) => (
+                        <div
+                            key={`${row?.name ?? "ingredient"}-${index}`}
+                            className="ingredient-row"
                         >
-                            + Zutat hinzufügen
-                        </button>
-                    </div>
+                            <input
+                                type="text"
+                                value={row?.amount ?? ""}
+                                onChange={(event) =>
+                                    updateIngredientRow(index, "amount", event.target.value)
+                                }
+                                placeholder="Menge"
+                                disabled={saving}
+                            />
 
-                    <div
-                        style={{
-                            display: "grid",
-                            gap: 10,
-                        }}
-                    >
-                        {ingredientRows.map((row, index) => (
-                            <div
-                                key={`${row?.name ?? "ingredient"}-${index}`}
+                            <input
+                                type="text"
+                                value={row?.name ?? ""}
+                                onChange={(event) =>
+                                    updateIngredientRow(index, "name", event.target.value)
+                                }
+                                placeholder="Zutat"
+                                disabled={saving}
+                            />
+
+                            <button
+                                type="button"
+                                onClick={() => removeIngredientRow(index)}
+                                disabled={saving}
+                                aria-label={`Zutat ${index + 1} entfernen`}
+                            >
+                                X
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </section>
+            
+            {/* Kategorien */}
+            <section className="form-section">
+                <h3>Kategorien</h3>
+
+                <div className="category-grid">
+                    {categoryOptions.map((categoryName) => {
+                        const selected = selectedCategories.includes(categoryName);
+
+                        return (
+                            <label
+                                key={categoryName}
                                 style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "120px 1fr auto",
-                                    gap: 10,
+                                    display: "flex",
                                     alignItems: "center",
+                                    gap: 6,
+                                    padding: "6px 10px",
+                                    borderRadius: 999,
+                                    border: "1px solid #ddd",
+                                    background: selected ? "#f3f3f3" : "#fff",
                                 }}
                             >
                                 <input
-                                    type="text"
-                                    value={row?.amount ?? ""}
-                                    onChange={(event) =>
-                                        updateIngredientRow(index, "amount", event.target.value)
-                                    }
-                                    placeholder="Menge"
+                                    type="checkbox"
+                                    checked={selected}
+                                    onChange={() => toggleCategory(categoryName)}
                                     disabled={saving}
                                 />
-
-                                <input
-                                    type="text"
-                                    value={row?.name ?? ""}
-                                    onChange={(event) =>
-                                        updateIngredientRow(index, "name", event.target.value)
-                                    }
-                                    placeholder="Zutat"
-                                    disabled={saving}
-                                />
-
-                                <button
-                                    type="button"
-                                    onClick={() => removeIngredientRow(index)}
-                                    disabled={saving}
-                                    aria-label={`Zutat ${index + 1} entfernen`}
-                                >
-                                    Entfernen
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
-                <div style={{ marginTop: 8 }}>
-                    <button type="button" onClick={onSave} disabled={saving}>
-                        {saving ? "Speichert..." : saveLabel}
-                    </button>
+                                <span>{categoryName}</span>
+                            </label>
+                        );
+                    })}
                 </div>
+            </section>
+
+            <div 
+                style={{ marginTop: 8 }}>
+                <button
+                    className="save"
+                    type="button" onClick={onSave} disabled={saving}>
+                    {saving ? "Speichert..." : saveLabel}
+                </button>
             </div>
+
         </div>
     );
 }

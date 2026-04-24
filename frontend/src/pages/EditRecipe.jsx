@@ -5,10 +5,13 @@
  * Seite zum Bearbeiten eines Rezepts.
  *
  * Ablauf:
- * - Rezept aus dem Backend laden
- * - Daten ins Formular übernehmen
- * - Änderungen speichern
+ * - Rezept aus dem Backend laden, Rezept über API laden (GET /api/recipes/:id)
+ * - Daten ins Formular übernehmen, API-Daten in Formularstruktur mappen
+ * - Änderungen speichern (PUT /api/recipes/:id)
  * -------------------------------------------------------------
+ * Architektur:
+ * - Formular ist ausgelagert in RecipeForm (Wiederverwendbarkeit)
+ * - Mapper trennt API-Struktur und UI-Formular
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -20,29 +23,40 @@ import {
     buildPayloadFromForm,
 } from "../utils/recipeFormMapper";
 
-const API_BASE = "http://localhost:8081";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8081";
 
 export default function EditRecipe() {
-    /* ---------------------------------------------------------
-       Router
-    --------------------------------------------------------- */
+    /** ----------------------------------------------------------
+     * Router
+     * ---------------------------------------------------------- */
 
+    // Rezept-ID aus URL
     const { id } = useParams();
+
+    // Navigation innerhalb der App
     const navigate = useNavigate();
 
-    /* ---------------------------------------------------------
-       State
-    --------------------------------------------------------- */
+    /** ----------------------------------------------------------
+     * State
+     * ---------------------------------------------------------- */
 
+    // Original-Rezept aus API (für imageUrl etc.)
     const [recipe, setRecipe] = useState(null);
 
+    const [imageFile, setImageFile] = useState(null);
+
+    // UI Status
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+
+    // Formular-State (UI)
     const [form, setForm] = useState({
         title: "",
         description: "",
-        ingredients: "",
-        instructions: "",
+        ingredients: [],
         categories: [],
-        difficultyLevel: "",
+        difficultyLevel: "EASY",
         prepTimeMinutes: "",
         cookTimeMinutes: "",
         servings: "",
@@ -51,70 +65,69 @@ export default function EditRecipe() {
         carbohydrates: "",
         fats: "",
         rating: "",
-        imageUrl: "",
-        imageFile: null,
     });
 
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState("");
 
-    /* ---------------------------------------------------------
-       Rezept laden
-    --------------------------------------------------------- */
+
+    /** ----------------------------------------------------------
+     * Rezept laden
+     * ----------------------------------------------------------
+     * Lädt ein einzelnes Rezept vom Backend
+     * und überführt es in den Formular-State.
+     */
 
     useEffect(() => {
+        let ignore = false;
+
         async function loadRecipe() {
             setLoading(true);
             setError("");
 
             try {
-                const response = await fetch(`${API_BASE}/api/recipes/${id}`);
+                const res = await fetch(`${API_BASE}/api/recipes/${id}`);
 
-                if (!response.ok) {
-                    throw new Error(`Rezept nicht gefunden (HTTP ${response.status})`);
+                if (!res.ok) {
+                    const text = await res.text().catch(() => "");
+                    throw new Error(text || `Rezept nicht gefunden (HTTP ${res.status})`);
                 }
 
-                const data = await response.json();
-                const mappedForm = mapRecipeToForm(data);
+                const data = await res.json();
 
+                if (ignore) return;
+
+                // Originaldaten speichern
                 setRecipe(data);
 
-                setForm((prev) => ({
-                    ...prev,
-                    ...mappedForm,
-                    ingredients:
-                        typeof mappedForm?.ingredients === "string"
-                            ? mappedForm.ingredients
-                            : "",
-                    instructions:
-                        typeof mappedForm?.instructions === "string"
-                            ? mappedForm.instructions
-                            : "",
-                    categories: Array.isArray(mappedForm?.categories)
-                        ? mappedForm.categories
-                        : [],
-                    imageUrl: mappedForm?.imageUrl || data?.imageUrl || "",
-                    imageFile: null,
-                }));
+                // API -> Formularstruktur
+                const mapped = mapRecipeToForm(data);
+                setForm(mapped);
             } catch (err) {
-                setError(err?.message || "Fehler beim Laden.");
+                if (!ignore) {
+                    setError(err?.message || "Fehler beim Laden.");
+                }
             } finally {
-                setLoading(false);
+                if (!ignore) setLoading(false);
             }
         }
 
         loadRecipe();
+
+        return () => {
+            ignore = true;
+        };
     }, [id]);
 
-    /* ---------------------------------------------------------
-       Rezept speichern
-    --------------------------------------------------------- */
+    /** ----------------------------------------------------------
+     * Rezept speichern
+     * ----------------------------------------------------------
+     * Sendet die Änderungen an das Backend.
+     */
 
     async function handleUpdate(event) {
         event.preventDefault();
         setError("");
 
+        // einfache Validierung
         if (!form.title.trim()) {
             setError("Bitte einen Titel eingeben.");
             return;
@@ -123,27 +136,23 @@ export default function EditRecipe() {
         try {
             setSaving(true);
 
-            let imageUrl = form.imageUrl || recipe?.imageUrl || "";
+            let imageUrl = recipe?.imageUrl || "";
 
-            if (form.imageFile) {
+            if (imageFile) {
                 const imageData = new FormData();
-                imageData.append("file", form.imageFile);
+                imageData.append("file", imageFile);
 
-                const uploadResponse = await fetch(`${API_BASE}/api/images/upload`, {
+                const uploadResponse = await fetch(`${API_BASE}/api/images/recipes/${id}`, {
                     method: "POST",
                     body: imageData,
                 });
 
                 if (!uploadResponse.ok) {
-                    const uploadText = await uploadResponse.text().catch(() => "");
-                    throw new Error(
-                        uploadText ||
-                        `Bild konnte nicht hochgeladen werden (HTTP ${uploadResponse.status})`
-                    );
+                    const text = await uploadResponse.text().catch(() => "");
+                    throw new Error(text || `Bild konnte nicht hochgeladen werden (HTTP ${uploadResponse.status})`);
                 }
 
                 const uploadResult = await uploadResponse.json().catch(() => null);
-
                 imageUrl =
                     uploadResult?.imageUrl ||
                     uploadResult?.url ||
@@ -151,10 +160,13 @@ export default function EditRecipe() {
                     imageUrl;
             }
 
+            // Formular -> API Payload
             const payload = buildPayloadFromForm(form, {
                 imageUrl,
             });
 
+            console.log("UPDATE PAYLOAD", payload);
+            
             const response = await fetch(`${API_BASE}/api/recipes/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -162,11 +174,14 @@ export default function EditRecipe() {
             });
 
             if (!response.ok) {
-                throw new Error(`Fehler beim Speichern (HTTP ${response.status})`);
+                const text = await response.text().catch(() => "");
+                throw new Error(text || `Fehler beim Speichern (HTTP ${response.status})`);
             }
 
-            const updatedRecipe = await response.json().catch(() => null);
-            navigate(`/recipes/${updatedRecipe?.id || id}`);
+            const updated = await response.json().catch(() => null);
+
+            // nach erfolgreichem Update zur Detailseite
+            navigate(`/recipes/${updated?.id || id}`);
         } catch (err) {
             setError(err?.message || "Fehler beim Speichern.");
         } finally {
@@ -174,17 +189,16 @@ export default function EditRecipe() {
         }
     }
 
-    /* ---------------------------------------------------------
-       Bild
-    --------------------------------------------------------- */
-
     const imagePreviewUrl = useMemo(() => {
-        if (form.imageFile) {
-            return URL.createObjectURL(form.imageFile);
+        if (imageFile) {
+            return URL.createObjectURL(imageFile);
         }
 
-        return form.imageUrl || recipe?.imageUrl || "";
-    }, [form.imageFile, form.imageUrl, recipe?.imageUrl]);
+        const url = recipe?.imageUrl?.trim();
+        if (!url) return "";
+
+        return url.startsWith("http") ? url : `${API_BASE}${url}`;
+    }, [imageFile, recipe?.imageUrl]);
 
     useEffect(() => {
         return () => {
@@ -194,18 +208,13 @@ export default function EditRecipe() {
         };
     }, [imagePreviewUrl]);
 
-    function handleImageChange(event) {
-        const file = event.target.files?.[0] ?? null;
-
-        setForm((prev) => ({
-            ...prev,
-            imageFile: file,
-        }));
+    function handleImageChange(file) {
+        setImageFile(file || null);
     }
 
-    /* ---------------------------------------------------------
-       Ladezustand
-    --------------------------------------------------------- */
+    /** ----------------------------------------------------------
+     * UI: Ladezustand
+     * ---------------------------------------------------------- */
 
     if (loading) {
         return (
@@ -215,9 +224,9 @@ export default function EditRecipe() {
         );
     }
 
-    /* ---------------------------------------------------------
-       Fehleransicht
-    --------------------------------------------------------- */
+    /** ----------------------------------------------------------
+     * UI: Fehler beim Laden
+     * ---------------------------------------------------------- */
 
     if (!recipe && error) {
         return (
@@ -238,7 +247,8 @@ export default function EditRecipe() {
                 </div>
 
                 <div style={{ marginTop: 12 }}>
-                    <button type="button" onClick={() => navigate("/recipes")}>
+                    <button
+                        type="button" onClick={() => navigate("/recipes")}>
                         Zurück zur Liste
                     </button>
                 </div>
@@ -246,9 +256,9 @@ export default function EditRecipe() {
         );
     }
 
-    /* ---------------------------------------------------------
-       Formular
-    --------------------------------------------------------- */
+    /** ----------------------------------------------------------
+     * UI: Formular
+     * ---------------------------------------------------------- */
 
     return (
         <div>
@@ -264,7 +274,7 @@ export default function EditRecipe() {
                 saving={saving}
                 error={error}
                 onCancel={() => navigate(`/recipes/${id}`)}
-                imageFile={form.imageFile}
+                imageFile={imageFile}
                 imagePreviewUrl={imagePreviewUrl}
                 onImageChange={handleImageChange}
             />

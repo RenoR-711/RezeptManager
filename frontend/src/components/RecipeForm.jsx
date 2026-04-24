@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import RecipeFormFields from "./RecipeFormFields";
+import IngredientEditor from "./IngredientEditor";
 
 /**
  * -------------------------------------------------------------
@@ -8,9 +9,11 @@ import RecipeFormFields from "./RecipeFormFields";
  * Formular für den normalen Create-/Edit-Flow.
  *
  * Diese Komponente nutzt RecipeFormFields als gemeinsame Basis
- * und ergänzt den Zutatenbereich als Textarea.
+ * Rendert die gemeinsamen Formularfelder, den Zutatenbereich
+ * sowie Fehler- und Aktionsbereich.
  * -------------------------------------------------------------
  */
+
 export default function RecipeForm({
     form,
     setForm,
@@ -25,86 +28,59 @@ export default function RecipeForm({
     imagePreviewUrl = "",
     disabled = false,
     categoryOptions,
+    showMetaFields = true,
+    showImageUpload = true,
 }) {
-    /* ---------------------------------------------------------
-       Zutatenfeld
-    --------------------------------------------------------- */
-
     const ingredientsSection = (
-        <label className="form-label">
-            <span>Zutaten</span>
-
-            <textarea
-                value={form.ingredients ?? ""}
-                onChange={(event) =>
-                    setForm((prev) => ({
-                        ...prev,
-                        ingredients: event.target.value,
-                    }))
-                }
-                placeholder={`z. B.\n- 200 g Nudeln\n- 1 Dose Tomaten\n- Chili\n...`}
-                rows={6}
-                disabled={disabled || saving}
-            />
-        </label>
+        <IngredientEditor
+            value={form?.ingredients ?? ""}
+            onChange={(value) =>
+                setForm((prev) => ({
+                    ...prev,
+                    ingredients: value,
+                }))
+            }
+            disabled={disabled}
+        />
     );
 
     /* ---------------------------------------------------------
-       Render
-    --------------------------------------------------------- */
-
+   Render
+--------------------------------------------------------- */
     return (
-        <form onSubmit={onSubmit}>
+        <form className="edit-form" onSubmit={onSubmit}>
             <RecipeFormFields
                 form={form}
                 setForm={setForm}
                 imageFile={imageFile}
-                onImageChange={onImageChange}
                 imagePreviewUrl={imagePreviewUrl}
+                onImageChange={onImageChange}
                 disabled={disabled || saving}
                 categoryOptions={categoryOptions}
                 ingredientsSection={ingredientsSection}
-                showMetaFields={true}
-                showImageUpload={true}
+                showMetaFields={showMetaFields}
+                showImageUpload={showImageUpload}
             />
 
-            {error ? (
-                <div
-                    role="alert"
-                    style={{
-                        marginTop: 16,
-                        padding: 10,
-                        borderRadius: 8,
-                        background: "#ffe5e5",
-                        border: "1px solid #ffb3b3",
-                    }}
-                >
-                    {error}
-                </div>
-            ) : null}
+            {error ? <p className="form-error">{error}</p> : null}
 
-            <div
-                className="form-actions"
-                style={{
-                    display: "flex",
-                    gap: 10,
-                    marginTop: 16,
-                    flexWrap: "wrap",
-                }}
-            >
-                <button type="submit" disabled={disabled || saving}>
-                    {saving ? "Speichert..." : submitLabel}
-                </button>
-
-                {onCancel ? (
+            <div className="form-actions">
+                {onCancel && (
                     <button
+                        className="cancel"
                         type="button"
                         onClick={onCancel}
                         disabled={disabled || saving}
                     >
                         {cancelLabel}
                     </button>
-                ) : null}
+                )}
+
+                <button
+                    className="save"
+                    type="submit" disabled={disabled || saving}>
+                    {saving ? "Speichern..." : submitLabel}
+                </button>
             </div>
         </form>
     );
@@ -115,27 +91,7 @@ export default function RecipeForm({
 ------------------------------------------------------------- */
 
 RecipeForm.propTypes = {
-    form: PropTypes.shape({
-        title: PropTypes.string,
-        ingredients: PropTypes.string,
-        description: PropTypes.string,
-        categories: PropTypes.arrayOf(PropTypes.string),
-        difficultyLevel: PropTypes.string,
-        prepTimeMinutes: PropTypes.oneOfType([
-            PropTypes.string,
-            PropTypes.number,
-        ]),
-        cookTimeMinutes: PropTypes.oneOfType([
-            PropTypes.string,
-            PropTypes.number,
-        ]),
-        servings: PropTypes.oneOfType([
-            PropTypes.string,
-            PropTypes.number,
-        ]),
-        instructions: PropTypes.string,
-        imageUrl: PropTypes.string,
-    }).isRequired,
+    form: PropTypes.object.isRequired,
     setForm: PropTypes.func.isRequired,
     onSubmit: PropTypes.func.isRequired,
     submitLabel: PropTypes.string,
@@ -143,19 +99,11 @@ RecipeForm.propTypes = {
     error: PropTypes.string,
     onCancel: PropTypes.func,
     cancelLabel: PropTypes.string,
-    imageFile: PropTypes.shape({
-        name: PropTypes.string,
-    }),
+    imageFile: PropTypes.object,
     onImageChange: PropTypes.func,
     imagePreviewUrl: PropTypes.string,
     disabled: PropTypes.bool,
-    categoryOptions: PropTypes.arrayOf(
-        PropTypes.oneOfType([
-            PropTypes.string,
-            PropTypes.shape({
-                name: PropTypes.string,
-                color: PropTypes.string,
-            }),
-        ]),
-    ),
+    categoryOptions: PropTypes.array,
+    showMetaFields: PropTypes.bool,
+    showImageUpload: PropTypes.bool,
 };

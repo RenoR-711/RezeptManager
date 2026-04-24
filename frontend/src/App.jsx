@@ -17,7 +17,7 @@ import UploadRecipeImage from "./pages/UploadRecipeImage";
 import Navbar from "./components/Navbar";
 
 import "./App.css";
-import "./index.css";
+import "./Recipes.css";
 
 export default function App() {
   return (
@@ -34,11 +34,11 @@ export default function App() {
         <Route path="/recipes/category/:cat" element={<RecipeList />} />
 
         <Route path="/recipes/new" element={<NewRecipe />} />
-        <Route path="/recipes/:id/edit" element={<EditRecipe />} />
+        <Route path="/recipes/edit/:id" element={<EditRecipe />} />
         <Route path="/recipes/:id" element={<Recipes />} />
 
         {/* ================= SCAN ================= */}
-        <Route path="/scan/pdf" element={<ScanRecipePdf />} />
+        <Route path="/scan/file" element={<ScanRecipePdf />} />
         <Route path="/scan/image" element={<UploadRecipeImage />} />
         <Route path="/scan/barcode" element={<ScanBarcode />} />
 

@@ -1,8 +1,6 @@
 import { useMemo } from "react";
 import PropTypes from "prop-types";
 import { CATEGORIES } from "../data/categories";
-
-import IngredientEditor from "./IngredientEditor";
 import ImageUploadField from "./ImageUploadField";
 
 /* -------------------------------------------------------------
@@ -22,6 +20,7 @@ function toInputValue(value) {
  * RecipeFormFields
  * -------------------------------------------------------------
  * Gemeinsame Formularfelder für Rezepte.
+ * Spezialbereiche wie Zutaten werden von außen eingebunden.
  * -------------------------------------------------------------
  */
 export default function RecipeFormFields({
@@ -32,9 +31,9 @@ export default function RecipeFormFields({
     onImageChange,
     disabled = false,
     categoryOptions,
+    ingredientsSection = null,
     showMetaFields = true,
     showImageUpload = true,
-    showIngredients = true,
 }) {
     const resolvedCategoryOptions = useMemo(() => {
         const source = Array.isArray(categoryOptions)
@@ -57,45 +56,47 @@ export default function RecipeFormFields({
     }
 
     function toggleCategory(name) {
-        const current = Array.isArray(form?.categories)
+        const currentCategories = Array.isArray(form?.categories)
             ? form.categories
             : [];
 
-        const next = current.includes(name)
-            ? current.filter((c) => c !== name)
-            : [...current, name];
+        const nextCategories = currentCategories.includes(name)
+            ? currentCategories.filter((category) => category !== name)
+            : [...currentCategories, name];
 
-        updateField("categories", next);
+        updateField("categories", nextCategories);
     }
 
+    /* ---------------------------------------------------------
+  Render
+--------------------------------------------------------- */
     return (
-        <div className="recipe-form-fields">
-            {/* Basis */}
+        <div className="recipe-main">
+            {/* Basisdaten */}
             <section className="form-section">
-                <h2>Basisdaten</h2>
+                <h3>Basisdaten</h3>
 
                 <label className="form-label">
                     <span>Titel</span>
                     <input
                         type="text"
                         value={toInputValue(form?.title)}
-                        onChange={(e) =>
-                            updateField("title", e.target.value)
-                        }
+                        onChange={(event) => updateField("title", event.target.value)}
                         placeholder="z. B. Spaghetti Bolognese"
                         disabled={disabled}
                         required
                     />
                 </label>
 
-                <label className="form-label">
+                <label className="form-label"
+                    htmlFor="recipe-description">
                     <span>Beschreibung</span>
                     <textarea
                         value={toInputValue(form?.description)}
-                        onChange={(e) =>
-                            updateField("description", e.target.value)
+                        onChange={(event) =>
+                            updateField("description", event.target.value)
                         }
-                        rows={3}
+                        rows={15}
                         disabled={disabled}
                     />
                 </label>
@@ -103,25 +104,24 @@ export default function RecipeFormFields({
 
             {/* Kategorien */}
             <section className="form-section">
-                <h2>Kategorien</h2>
+                <h3>Kategorien</h3>
 
                 <div className="category-grid">
-                    {resolvedCategoryOptions.map((cat) => {
+                    {resolvedCategoryOptions.map((category) => {
                         const selected =
                             Array.isArray(form?.categories) &&
-                            form.categories.includes(cat.name);
+                            form.categories.includes(category.name);
 
                         return (
                             <label
-                                key={cat.name}
-                                className={`category-chip ${selected ? "selected" : ""
-                                    }`}
+                                key={category.name}
+                                className={`category-chip ${selected ? "selected" : ""}`}
                                 style={
-                                    cat.color
+                                    category.color
                                         ? {
-                                            borderColor: cat.color,
+                                            borderColor: category.color,
                                             backgroundColor: selected
-                                                ? `${cat.color}22`
+                                                ? `${category.color}22`
                                                 : undefined,
                                         }
                                         : undefined
@@ -130,35 +130,29 @@ export default function RecipeFormFields({
                                 <input
                                     type="checkbox"
                                     checked={selected}
-                                    onChange={() =>
-                                        toggleCategory(cat.name)
-                                    }
+                                    onChange={() => toggleCategory(category.name)}
                                     disabled={disabled}
                                 />
-                                <span>{cat.name}</span>
+                                <span>{category.name}</span>
                             </label>
                         );
                     })}
                 </div>
             </section>
 
-            {/* Meta */}
+            {/* Rezeptdetails */}
             {showMetaFields && (
                 <section className="form-section">
-                    <h2>Rezeptdetails</h2>
+                    <h3>Rezeptdetails</h3>
 
-                    <div className="form-grid two-columns">
+                    {/* Schwierigkeitsgrad */}
+                    <div className="form-grid">
                         <label className="form-label">
                             <span>Schwierigkeitsgrad</span>
                             <select
-                                value={toInputValue(
-                                    form?.difficultyLevel
-                                )}
-                                onChange={(e) =>
-                                    updateField(
-                                        "difficultyLevel",
-                                        e.target.value
-                                    )
+                                value={toInputValue(form?.difficultyLevel)}
+                                onChange={(event) =>
+                                    updateField("difficultyLevel", event.target.value)
                                 }
                                 disabled={disabled}
                             >
@@ -169,53 +163,113 @@ export default function RecipeFormFields({
                             </select>
                         </label>
 
+                        {/* Zubereitungszeit */}
+                        <label className="form-label">
+                            <span>Zubereitungszeit (Min.)</span>
+                            <input
+                                type="number"
+                                min="0"
+                                value={toInputValue(form?.prepTimeMinutes)}
+                                onChange={(event) =>
+                                    updateField("prepTimeMinutes", event.target.value)
+                                }
+                                disabled={disabled}
+                            />
+                        </label>
+
+                        {/* Kochzeit */}
+                        <label className="form-label">
+                            <span>Kochzeit (Min.)</span>
+                            <input
+                                type="number"
+                                min="0"
+                                value={toInputValue(form?.cookTimeMinutes)}
+                                onChange={(event) =>
+                                    updateField("cookTimeMinutes", event.target.value)
+                                }
+                                disabled={disabled}
+                            />
+                        </label>
+
+                        {/* Portionen */}
                         <label className="form-label">
                             <span>Portionen</span>
                             <input
                                 type="number"
                                 min="1"
                                 value={toInputValue(form?.servings)}
-                                onChange={(e) =>
-                                    updateField(
-                                        "servings",
-                                        e.target.value
-                                    )
+                                onChange={(event) =>
+                                    updateField("servings", event.target.value)
                                 }
                                 disabled={disabled}
                             />
                         </label>
 
+                        {/* Kalorien */}
                         <label className="form-label">
-                            <span>Vorbereitungszeit</span>
+                            <span>Kalorien</span>
                             <input
                                 type="number"
                                 min="0"
-                                value={toInputValue(
-                                    form?.prepTimeMinutes
-                                )}
-                                onChange={(e) =>
-                                    updateField(
-                                        "prepTimeMinutes",
-                                        e.target.value
-                                    )
+                                value={toInputValue(form?.calories)}
+                                onChange={(event) =>
+                                    updateField("calories", event.target.value)
                                 }
                                 disabled={disabled}
                             />
                         </label>
 
+                        {/* Protein */}
                         <label className="form-label">
-                            <span>Kochzeit</span>
+                            <span>Protein</span>
                             <input
                                 type="number"
                                 min="0"
-                                value={toInputValue(
-                                    form?.cookTimeMinutes
-                                )}
-                                onChange={(e) =>
-                                    updateField(
-                                        "cookTimeMinutes",
-                                        e.target.value
-                                    )
+                                value={toInputValue(form?.protein)}
+                                onChange={(event) =>
+                                    updateField("protein", event.target.value)
+                                }
+                                disabled={disabled}
+                            />
+                        </label>
+
+                        {/* Kohlenhydrate (g) */}
+                        <label className="form-label">
+                            <span>Kohlenhydrate (g)</span>
+                            <input
+                                type="number"
+                                min="0"
+                                value={toInputValue(form?.carbohydrates)}
+                                onChange={(event) =>
+                                    updateField("carbohydrates", event.target.value)
+                                }
+                                disabled={disabled}
+                            />
+                        </label>
+
+                        {/* Fett (g) */}
+                        <label className="form-label">
+                            <span>Fett (g)</span>
+                            <input
+                                type="number"
+                                min="0"
+                                value={toInputValue(form?.fats)}
+                                onChange={(event) =>
+                                    updateField("fats", event.target.value)
+                                }
+                                disabled={disabled}
+                            />
+                        </label>
+
+                        {/* Bewertung */}
+                        <label className="form-label">
+                            <span>Bewertung</span>
+                            <input
+                                type="number"
+                                min="0"
+                                value={toInputValue(form?.rating)}
+                                onChange={(event) =>
+                                    updateField("rating", event.target.value)
                                 }
                                 disabled={disabled}
                             />
@@ -224,30 +278,20 @@ export default function RecipeFormFields({
                 </section>
             )}
 
-            {/* Zutaten */}
-            {showIngredients && (
-                <section className="form-section">
-                    <h2>Zutaten</h2>
+            {/* Spezialbereich: Zutaten */}
+            {ingredientsSection}
 
-                    <IngredientEditor
-                        ingredients={form?.ingredients ?? ""}
-                        onChange={(value) =>
-                            updateField("ingredients", value)
-                        }
-                        disabled={disabled}
-                    />
-                </section>
-            )}
-
-            {/* Anleitung */}
+            {/* Zubereitung */}
             <section className="form-section">
-                <h2>Zubereitung</h2>
+                <h3>Zubereitung</h3>
 
                 <label className="form-label">
                     <span>Anleitung</span>
                     <textarea
                         value={toInputValue(form?.instructions)}
-                        onChange={(event) => updateField("instructions", event.target.value)}
+                        onChange={(event) =>
+                            updateField("instructions", event.target.value)
+                        }
                         placeholder="Zubereitungsschritte eingeben"
                         rows={8}
                         disabled={disabled}
@@ -258,7 +302,7 @@ export default function RecipeFormFields({
             {/* Bild */}
             {showImageUpload && (
                 <section className="form-section">
-                    <h2>Bild</h2>
+                    <h3>Bild</h3>
 
                     <ImageUploadField
                         imageFile={imageFile}
@@ -285,7 +329,7 @@ RecipeFormFields.propTypes = {
     onImageChange: PropTypes.func,
     disabled: PropTypes.bool,
     categoryOptions: PropTypes.array,
+    ingredientsSection: PropTypes.node,
     showMetaFields: PropTypes.bool,
     showImageUpload: PropTypes.bool,
-    showIngredients: PropTypes.bool,
 };

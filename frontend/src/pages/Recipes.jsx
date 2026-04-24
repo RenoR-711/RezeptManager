@@ -139,16 +139,9 @@ function Meta({ label, value }) {
         value === null || value === undefined || value === "" ? "—" : String(value);
 
     return (
-        <div
-            style={{
-                border: "1px solid #eee",
-                borderRadius: 12,
-                padding: 12,
-                background: "#fff",
-            }}
-        >
-            <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 6 }}>{label}</div>
-            <div style={{ fontWeight: 600 }}>{displayValue}</div>
+        <div className="recipe-meta-card">
+            <div className="recipe-meta-label">{label}</div>
+            <div className="recipe-meta-value">{displayValue}</div>
         </div>
     );
 }
@@ -318,23 +311,16 @@ export default function Recipes() {
 
     if (!recipe) {
         return (
-            <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
+            <div className="recipe-page recipe-page--empty">
                 <h1>Rezept</h1>
 
                 <div
-                    role="alert"
-                    style={{
-                        background: "#ffe5e5",
-                        border: "1px solid #ffb3b3",
-                        padding: 10,
-                        borderRadius: 8,
-                        marginTop: 12,
-                    }}
-                >
+                    className="recipe-alert"
+                    role="alert">
                     {error || "Rezept nicht gefunden."}
                 </div>
 
-                <div style={{ marginTop: 12 }}>
+                <div className="recipe-actions">
                     <button className="btn" onClick={handleBack}>
                         Zurück zur Liste
                     </button>
@@ -347,47 +333,32 @@ export default function Recipes() {
        Main Render
     --------------------------------------------------------- */
     return (
-        <div style={{ maxWidth: 1000, margin: "0 auto", padding: 16 }}>
+        <div className="recipe-page">
             {/* Titel */}
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-                <div style={{ flex: "1 1 520px" }}>
-                    <h1 style={{ margin: 0 }}>{recipe.title}</h1>
+            <div className="recipe-header">
+                <div className="recipe-header-content">
+                    <h1 className="recipe-title">{recipe.title}</h1>
                 </div>
             </div>
 
             {/* Fehlermeldung */}
             {error ? (
-                <div
-                    role="alert"
-                    style={{
-                        background: "#ffe5e5",
-                        border: "1px solid #ffb3b3",
-                        padding: 10,
-                        borderRadius: 8,
-                        marginTop: 12,
-                    }}
-                >
+                <div role="alert" className="recipe-alert">
                     {error}
                 </div>
             ) : null}
 
             {/* Bild + Upload */}
-            <div style={{ marginTop: 14 }}>
+            <div className="recipe-image-section">
                 <img
                     src={imageSrc}
                     alt={recipe.title}
-                    style={{
-                        width: "100%",
-                        maxHeight: 420,
-                        objectFit: "cover",
-                        borderRadius: 12,
-                        display: "block",
-                    }}
+                    className="recipe-image"
                 />
 
-                <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
-                    <label style={{ display: "grid", gap: 6 }}>
-                        <span style={{ fontSize: 12, opacity: 0.7 }}>Bild hochladen</span>
+                <div className="recipe-image-actions">
+                    <label className="recipe-upload-label">
+                        <span className="recipe-upload-text">Bild hochladen</span>
                         <input
                             type="file"
                             accept="image/*"
@@ -397,7 +368,7 @@ export default function Recipes() {
                     </label>
 
                     {busy ? (
-                        <span style={{ fontSize: 12, opacity: 0.7, alignSelf: "end" }}>
+                        <span className="recipe-busy-text">
                             Arbeite…
                         </span>
                     ) : null}
@@ -406,8 +377,8 @@ export default function Recipes() {
 
             {/* Kategorien */}
             {categories.length > 0 ? (
-                <div style={{ marginTop: 14 }}>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div className="recipe-categories">
+                    <div className="recipe-category-list">
                         {categories.map((label) => (
                             <CategoryBadge
                                 key={label}
@@ -419,25 +390,16 @@ export default function Recipes() {
                     </div>
                 </div>
             ) : (
-                <p style={{ marginTop: 14, fontSize: 12, opacity: 0.7 }}>
+                <p className="recipe-category-empty">
                     Keine Kategorie vorhanden
                 </p>
             )}
 
             {/* Zutaten */}
             {ingredientLines.length > 0 ? (
-                <div style={{ marginTop: 16 }}>
-                    <h3 style={{ marginBottom: 8 }}>Zutaten</h3>
-                    <ul
-                        style={{
-                            margin: 0,
-                            padding: 12,
-                            borderRadius: 10,
-                            background: "#f6f6f6",
-                            fontSize: 14,
-                            textAlign: "left",
-                        }}
-                    >
+                <div className="recipe-section">
+                    <h3 className="recipe-section-title">Zutaten</h3>
+                    <ul className="recipe-ingredients-list">
                         {ingredientLines.map((ingredient, index) => (
                             <li key={`${ingredient}-${index}`}>{ingredient}</li>
                         ))}
@@ -447,51 +409,44 @@ export default function Recipes() {
 
             {/* Beschreibung */}
             {recipe.description ? (
-                <div style={{ marginTop: 16 }}>
-                    <h3 style={{ marginBottom: 8 }}>Beschreibung</h3>
-                    <p style={{ marginTop: 0, whiteSpace: "pre-wrap", textAlign: "left" }}>
-                        {recipe.description}
+                <div className="recipe-section">
+                    <h3 className="recipe-section-title">Beschreibung</h3>
+                    <p className="recipe-description">{recipe.description}
                     </p>
                 </div>
             ) : null}
 
             {/* Metadaten */}
-            <div style={{ marginTop: 16 }}>
-                <h3 style={{ marginBottom: 8 }}>Details</h3>
+            <div className="recipe-section">
+                <h3 className="recipe-section-title">Details</h3>
 
-                <div
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                        gap: 12,
-                    }}
-                >
+                <div className="recipe-meta-grid" >
                     <Meta label="Schwierigkeit" value={recipe.difficultyLevel} />
                     <Meta label="Zubereitungszeit (Min.)" value={recipe.prepTimeMinutes} />
                     <Meta label="Kochzeit (Min.)" value={recipe.cookTimeMinutes} />
                     <Meta label="Portionen" value={recipe.servings} />
                     <Meta label="Kalorien" value={recipe.calories} />
-                    <Meta label="Bewertung" value={recipe.rating} />
                     <Meta label="Protein (g)" value={recipe.protein} />
                     <Meta label="Kohlenhydrate (g)" value={recipe.carbohydrates} />
                     <Meta label="Fett (g)" value={recipe.fats} />
+                    <Meta label="Bewertung" value={recipe.rating} />
                 </div>
             </div>
 
             {/* Aktionen */}
-            <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-                <button className="btn primary" onClick={handleEdit}>
+            <div className="recipe-edit">
+                <button className="edit" onClick={handleEdit}>
                     Bearbeiten
                 </button>
 
-                <button className="btn" onClick={handleBack}>
+                <button className="cancel" onClick={handleBack}>
                     Zurück
                 </button>
 
-                <button className="btn" onClick={handlePdfDownload}>
-                    PDF herunterladen
+                <button className="secondary" onClick={handlePdfDownload}>
+                    PDF
                 </button>
-                
+
             </div>
         </div>
     );

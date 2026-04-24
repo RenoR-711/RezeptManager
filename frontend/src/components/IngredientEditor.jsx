@@ -5,34 +5,38 @@ import PropTypes from "prop-types";
  * IngredientEditor
  * -------------------------------------------------------------
  * Einfaches Eingabefeld für Zutaten als Text.
+ * Verwaltet Zutaten als Array von Objekten:
+ * { amount, unit, name }
  * -------------------------------------------------------------
  */
 export default function IngredientEditor({
-  ingredients = "",
+  value = "",
   onChange,
   disabled = false,
 }) {
-  function handleChange(event) {
-    onChange(event.target.value);
-  }
-
   return (
-    <label className="form-label">
-      <span>Zutaten</span>
+    <section className="form-section">
+      <h2>Zutaten</h2>
 
-      <textarea
-        value={ingredients ?? ""}
-        onChange={handleChange}
-        placeholder={`z. B.\n- 200 g Nudeln\n- 1 Dose Tomaten\n- Chili\n...`}
-        rows={6}
-        disabled={disabled}
-      />
-    </label>
+      <label className="form-label">
+        <span>Zutaten</span>
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={`z. B.
+- 200 g Mehl
+- 2 Eier
+- 250 ml Milch`}
+          rows={8}
+          disabled={disabled}
+        />
+      </label>
+    </section>
   );
 }
 
 IngredientEditor.propTypes = {
-  ingredients: PropTypes.string,
+  value: PropTypes.string,
   onChange: PropTypes.func.isRequired,
   disabled: PropTypes.bool,
 };
