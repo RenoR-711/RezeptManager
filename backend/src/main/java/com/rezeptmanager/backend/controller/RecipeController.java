@@ -39,7 +39,7 @@ public class RecipeController {
 
         @GetMapping("/{id}")
         public RecipeResponseDto getOne(@PathVariable Long id) {
-                return recipeService.findById(id);
+                return recipeService.findById(findEntityById(id));
         }
 
         /*
@@ -61,7 +61,7 @@ public class RecipeController {
 
         @PutMapping("/{id}")
         public RecipeResponseDto update(@PathVariable Long id, @RequestBody RecipeRequestDto recipe) {
-                return recipeService.update(id, recipe);
+                return recipeService.update(findEntityById(id), recipe);
         }
 
         /*
@@ -72,7 +72,7 @@ public class RecipeController {
 
         @DeleteMapping("/{id}")
         public void delete(@PathVariable Long id) {
-                recipeService.delete(id);
+                recipeService.delete(findEntityById(id));
         }
 
         /*

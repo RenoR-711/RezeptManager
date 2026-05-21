@@ -47,8 +47,8 @@ public class RecipeService {
                 .collect(Collectors.toList());
     }
 
-    public RecipeResponseDto findById(Long id) {
-        return RecipeMapper.toResponseDto(findEntityById(id));
+    public RecipeResponseDto findById(Recipe recipe) {
+        return RecipeMapper.toResponseDto(findEntityById(recipe));
     }
 
     /*
@@ -71,8 +71,8 @@ public class RecipeService {
      * ---------------------------------------------------------
      */
 
-    public RecipeResponseDto update(Long id, RecipeRequestDto dto) {
-        Recipe existingRecipe = findEntityById(id);
+    public RecipeResponseDto update(Recipe recipe, RecipeRequestDto dto) {
+        Recipe existingRecipe = findEntityById(recipe);
 
         RecipeMapper.applyToEntity(dto, existingRecipe);
         existingRecipe.setCategories(resolveCategories(dto.getCategories()));
@@ -81,8 +81,7 @@ public class RecipeService {
         return RecipeMapper.toResponseDto(savedRecipe);
     }
 
-    public RecipeResponseDto updateImageUrl(Long id, String imageUrl) {
-        Recipe recipe = findEntityById(id);
+    public RecipeResponseDto updateImageUrl(Recipe recipe, String imageUrl) {
         recipe.setImageUrl(imageUrl);
 
         Recipe savedRecipe = recipeRepository.save(recipe);
@@ -95,8 +94,7 @@ public class RecipeService {
      * ---------------------------------------------------------
      */
 
-    public void delete(Long id) {
-        Recipe recipe = findEntityById(id);
+    public void delete(Recipe recipe) {
         recipeRepository.delete(recipe);
     }
 
@@ -106,8 +104,7 @@ public class RecipeService {
      * ---------------------------------------------------------
      */
 
-    public ResponseEntity<byte[]> exportPdf(Long id) {
-        Recipe recipe = findEntityById(id);
+    public ResponseEntity<byte[]> exportPdf(Recipe recipe) {
         byte[] pdf = pdfExportService.exportRecipeToPdf(recipe);
 
         return ResponseEntity.ok()
@@ -123,8 +120,8 @@ public class RecipeService {
      * ---------------------------------------------------------
      */
 
-    private Recipe findEntityById(Long id) {
-        return recipeRepository.findById(id)
+    private Recipe findEntityById(Recipe recipe) {
+        return recipeRepository.findById(recipe.getId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Rezept nicht gefunden."));
