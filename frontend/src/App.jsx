@@ -16,8 +16,8 @@ import UploadRecipeImage from "./pages/UploadRecipeImage";
 
 import Navbar from "./components/Navbar";
 
-import "./App.css";
-import "./Recipes.css";
+import "./styles/App.css";
+import "./styles/Recipes.css";
 
 export default function App() {
   return (

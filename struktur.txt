@@ -1,0 +1,379 @@
+
+D:\React-SpringBoot\RezeptManager
+Ôö£ÔöÇÔöÇ backend/
+|  Ôö£ÔöÇÔöÇ pom.xml
+|  Ôö£ÔöÇÔöÇ rezeptdb.mv.db
+|  Ôö£ÔöÇÔöÇ rezeptdb.trace.db
+|  Ôö£ÔöÇÔöÇ src/
+|  |  ÔööÔöÇÔöÇ main/
+|  Ôö£ÔöÇÔöÇ target/
+|  |  Ôö£ÔöÇÔöÇ classes/
+|  |  Ôö£ÔöÇÔöÇ generated-sources/
+|  |  Ôö£ÔöÇÔöÇ generated-test-sources/
+|  |  Ôö£ÔöÇÔöÇ maven-status/
+|  |  ÔööÔöÇÔöÇ test-classes/
+|  ÔööÔöÇÔöÇ uploads/
+|     Ôö£ÔöÇÔöÇ images/
+|     ÔööÔöÇÔöÇ recipes/
+Ôö£ÔöÇÔöÇ frontend/
+|  Ôö£ÔöÇÔöÇ eslint.config.js
+|  Ôö£ÔöÇÔöÇ index.html
+|  Ôö£ÔöÇÔöÇ node_modules/
+|  |  Ôö£ÔöÇÔöÇ @babel/
+|  |  Ôö£ÔöÇÔöÇ @esbuild/
+|  |  Ôö£ÔöÇÔöÇ @eslint/
+|  |  Ôö£ÔöÇÔöÇ @eslint-community/
+|  |  Ôö£ÔöÇÔöÇ @humanfs/
+|  |  Ôö£ÔöÇÔöÇ @humanwhocodes/
+|  |  Ôö£ÔöÇÔöÇ @jridgewell/
+|  |  Ôö£ÔöÇÔöÇ @rolldown/
+|  |  Ôö£ÔöÇÔöÇ @rollup/
+|  |  Ôö£ÔöÇÔöÇ @types/
+|  |  Ôö£ÔöÇÔöÇ @vitejs/
+|  |  Ôö£ÔöÇÔöÇ acorn/
+|  |  Ôö£ÔöÇÔöÇ acorn-jsx/
+|  |  Ôö£ÔöÇÔöÇ ajv/
+|  |  Ôö£ÔöÇÔöÇ ansi-regex/
+|  |  Ôö£ÔöÇÔöÇ ansi-styles/
+|  |  Ôö£ÔöÇÔöÇ argparse/
+|  |  Ôö£ÔöÇÔöÇ balanced-match/
+|  |  Ôö£ÔöÇÔöÇ baseline-browser-mapping/
+|  |  Ôö£ÔöÇÔöÇ brace-expansion/
+|  |  Ôö£ÔöÇÔöÇ browserslist/
+|  |  Ôö£ÔöÇÔöÇ callsites/
+|  |  Ôö£ÔöÇÔöÇ caniuse-lite/
+|  |  Ôö£ÔöÇÔöÇ chalk/
+|  |  Ôö£ÔöÇÔöÇ cliui/
+|  |  Ôö£ÔöÇÔöÇ color-convert/
+|  |  Ôö£ÔöÇÔöÇ color-name/
+|  |  Ôö£ÔöÇÔöÇ concat-map/
+|  |  Ôö£ÔöÇÔöÇ concurrently/
+|  |  Ôö£ÔöÇÔöÇ convert-source-map/
+|  |  Ôö£ÔöÇÔöÇ cookie/
+|  |  Ôö£ÔöÇÔöÇ cross-spawn/
+|  |  Ôö£ÔöÇÔöÇ csstype/
+|  |  Ôö£ÔöÇÔöÇ debug/
+|  |  Ôö£ÔöÇÔöÇ deep-is/
+|  |  Ôö£ÔöÇÔöÇ electron-to-chromium/
+|  |  Ôö£ÔöÇÔöÇ emoji-regex/
+|  |  Ôö£ÔöÇÔöÇ esbuild/
+|  |  Ôö£ÔöÇÔöÇ escalade/
+|  |  Ôö£ÔöÇÔöÇ escape-string-regexp/
+|  |  Ôö£ÔöÇÔöÇ eslint/
+|  |  Ôö£ÔöÇÔöÇ eslint-plugin-react-hooks/
+|  |  Ôö£ÔöÇÔöÇ eslint-plugin-react-refresh/
+|  |  Ôö£ÔöÇÔöÇ eslint-scope/
+|  |  Ôö£ÔöÇÔöÇ eslint-visitor-keys/
+|  |  Ôö£ÔöÇÔöÇ espree/
+|  |  Ôö£ÔöÇÔöÇ esquery/
+|  |  Ôö£ÔöÇÔöÇ esrecurse/
+|  |  Ôö£ÔöÇÔöÇ estraverse/
+|  |  Ôö£ÔöÇÔöÇ esutils/
+|  |  Ôö£ÔöÇÔöÇ fast-deep-equal/
+|  |  Ôö£ÔöÇÔöÇ fast-json-stable-stringify/
+|  |  Ôö£ÔöÇÔöÇ fast-levenshtein/
+|  |  Ôö£ÔöÇÔöÇ fdir/
+|  |  Ôö£ÔöÇÔöÇ file-entry-cache/
+|  |  Ôö£ÔöÇÔöÇ find-up/
+|  |  Ôö£ÔöÇÔöÇ flat-cache/
+|  |  Ôö£ÔöÇÔöÇ flatted/
+|  |  Ôö£ÔöÇÔöÇ gensync/
+|  |  Ôö£ÔöÇÔöÇ get-caller-file/
+|  |  Ôö£ÔöÇÔöÇ glob-parent/
+|  |  Ôö£ÔöÇÔöÇ globals/
+|  |  Ôö£ÔöÇÔöÇ has-flag/
+|  |  Ôö£ÔöÇÔöÇ hermes-estree/
+|  |  Ôö£ÔöÇÔöÇ hermes-parser/
+|  |  Ôö£ÔöÇÔöÇ ignore/
+|  |  Ôö£ÔöÇÔöÇ import-fresh/
+|  |  Ôö£ÔöÇÔöÇ imurmurhash/
+|  |  Ôö£ÔöÇÔöÇ is-extglob/
+|  |  Ôö£ÔöÇÔöÇ is-fullwidth-code-point/
+|  |  Ôö£ÔöÇÔöÇ is-glob/
+|  |  Ôö£ÔöÇÔöÇ isexe/
+|  |  Ôö£ÔöÇÔöÇ js-tokens/
+|  |  Ôö£ÔöÇÔöÇ js-yaml/
+|  |  Ôö£ÔöÇÔöÇ jsesc/
+|  |  Ôö£ÔöÇÔöÇ json-buffer/
+|  |  Ôö£ÔöÇÔöÇ json-schema-traverse/
+|  |  Ôö£ÔöÇÔöÇ json-stable-stringify-without-jsonify/
+|  |  Ôö£ÔöÇÔöÇ json5/
+|  |  Ôö£ÔöÇÔöÇ keyv/
+|  |  Ôö£ÔöÇÔöÇ levn/
+|  |  Ôö£ÔöÇÔöÇ locate-path/
+|  |  Ôö£ÔöÇÔöÇ lodash.merge/
+|  |  Ôö£ÔöÇÔöÇ loose-envify/
+|  |  Ôö£ÔöÇÔöÇ lru-cache/
+|  |  Ôö£ÔöÇÔöÇ minimatch/
+|  |  Ôö£ÔöÇÔöÇ ms/
+|  |  Ôö£ÔöÇÔöÇ nanoid/
+|  |  Ôö£ÔöÇÔöÇ natural-compare/
+|  |  Ôö£ÔöÇÔöÇ node-releases/
+|  |  Ôö£ÔöÇÔöÇ object-assign/
+|  |  Ôö£ÔöÇÔöÇ optionator/
+|  |  Ôö£ÔöÇÔöÇ p-limit/
+|  |  Ôö£ÔöÇÔöÇ p-locate/
+|  |  Ôö£ÔöÇÔöÇ parent-module/
+|  |  Ôö£ÔöÇÔöÇ path-exists/
+|  |  Ôö£ÔöÇÔöÇ path-key/
+|  |  Ôö£ÔöÇÔöÇ picocolors/
+|  |  Ôö£ÔöÇÔöÇ picomatch/
+|  |  Ôö£ÔöÇÔöÇ postcss/
+|  |  Ôö£ÔöÇÔöÇ prelude-ls/
+|  |  Ôö£ÔöÇÔöÇ prop-types/
+|  |  Ôö£ÔöÇÔöÇ punycode/
+|  |  Ôö£ÔöÇÔöÇ react/
+|  |  Ôö£ÔöÇÔöÇ react-dom/
+|  |  Ôö£ÔöÇÔöÇ react-is/
+|  |  Ôö£ÔöÇÔöÇ react-refresh/
+|  |  Ôö£ÔöÇÔöÇ react-router/
+|  |  Ôö£ÔöÇÔöÇ react-router-dom/
+|  |  Ôö£ÔöÇÔöÇ require-directory/
+|  |  Ôö£ÔöÇÔöÇ resolve-from/
+|  |  Ôö£ÔöÇÔöÇ rollup/
+|  |  Ôö£ÔöÇÔöÇ rxjs/
+|  |  Ôö£ÔöÇÔöÇ scheduler/
+|  |  Ôö£ÔöÇÔöÇ semver/
+|  |  Ôö£ÔöÇÔöÇ set-cookie-parser/
+|  |  Ôö£ÔöÇÔöÇ shebang-command/
+|  |  Ôö£ÔöÇÔöÇ shebang-regex/
+|  |  Ôö£ÔöÇÔöÇ shell-quote/
+|  |  Ôö£ÔöÇÔöÇ source-map-js/
+|  |  Ôö£ÔöÇÔöÇ string-width/
+|  |  Ôö£ÔöÇÔöÇ strip-ansi/
+|  |  Ôö£ÔöÇÔöÇ strip-json-comments/
+|  |  Ôö£ÔöÇÔöÇ supports-color/
+|  |  Ôö£ÔöÇÔöÇ tinyglobby/
+|  |  Ôö£ÔöÇÔöÇ tree-kill/
+|  |  Ôö£ÔöÇÔöÇ tslib/
+|  |  Ôö£ÔöÇÔöÇ type-check/
+|  |  Ôö£ÔöÇÔöÇ update-browserslist-db/
+|  |  Ôö£ÔöÇÔöÇ uri-js/
+|  |  Ôö£ÔöÇÔöÇ vite/
+|  |  Ôö£ÔöÇÔöÇ which/
+|  |  Ôö£ÔöÇÔöÇ word-wrap/
+|  |  Ôö£ÔöÇÔöÇ wrap-ansi/
+|  |  Ôö£ÔöÇÔöÇ y18n/
+|  |  Ôö£ÔöÇÔöÇ yallist/
+|  |  Ôö£ÔöÇÔöÇ yargs/
+|  |  Ôö£ÔöÇÔöÇ yargs-parser/
+|  |  Ôö£ÔöÇÔöÇ yocto-queue/
+|  |  Ôö£ÔöÇÔöÇ zod/
+|  |  ÔööÔöÇÔöÇ zod-validation-error/
+|  Ôö£ÔöÇÔöÇ package-lock.json
+|  Ôö£ÔöÇÔöÇ package.json
+|  Ôö£ÔöÇÔöÇ public/
+|  |  ÔööÔöÇÔöÇ vite.svg
+|  Ôö£ÔöÇÔöÇ README.md
+|  Ôö£ÔöÇÔöÇ scripts/
+|  |  Ôö£ÔöÇÔöÇ createPage.js
+|  |  ÔööÔöÇÔöÇ createPageWithRoute.js
+|  Ôö£ÔöÇÔöÇ src/
+|  |  Ôö£ÔöÇÔöÇ App.css
+|  |  Ôö£ÔöÇÔöÇ App.jsx
+|  |  Ôö£ÔöÇÔöÇ assets/
+|  |  Ôö£ÔöÇÔöÇ components/
+|  |  Ôö£ÔöÇÔöÇ data/
+|  |  Ôö£ÔöÇÔöÇ index.css
+|  |  Ôö£ÔöÇÔöÇ main.jsx
+|  |  Ôö£ÔöÇÔöÇ pages/
+|  |  Ôö£ÔöÇÔöÇ Recipes.css
+|  |  ÔööÔöÇÔöÇ utils/
+|  ÔööÔöÇÔöÇ vite.config.js
+Ôö£ÔöÇÔöÇ LICENSE
+Ôö£ÔöÇÔöÇ node_modules/
+|  Ôö£ÔöÇÔöÇ ansi-regex/
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ license
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ readme.md
+|  Ôö£ÔöÇÔöÇ ansi-styles/
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ license
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ readme.md
+|  Ôö£ÔöÇÔöÇ chalk/
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ license
+|  |  Ôö£ÔöÇÔöÇ node_modules/
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  Ôö£ÔöÇÔöÇ readme.md
+|  |  ÔööÔöÇÔöÇ source/
+|  Ôö£ÔöÇÔöÇ cliui/
+|  |  Ôö£ÔöÇÔöÇ build/
+|  |  Ôö£ÔöÇÔöÇ CHANGELOG.md
+|  |  Ôö£ÔöÇÔöÇ index.mjs
+|  |  Ôö£ÔöÇÔöÇ LICENSE.txt
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ README.md
+|  Ôö£ÔöÇÔöÇ color-convert/
+|  |  Ôö£ÔöÇÔöÇ CHANGELOG.md
+|  |  Ôö£ÔöÇÔöÇ conversions.js
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ LICENSE
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  Ôö£ÔöÇÔöÇ README.md
+|  |  ÔööÔöÇÔöÇ route.js
+|  Ôö£ÔöÇÔöÇ color-name/
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ LICENSE
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ README.md
+|  Ôö£ÔöÇÔöÇ concurrently/
+|  |  Ôö£ÔöÇÔöÇ dist/
+|  |  Ôö£ÔöÇÔöÇ docs/
+|  |  Ôö£ÔöÇÔöÇ index.d.mts
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ index.mjs
+|  |  Ôö£ÔöÇÔöÇ LICENSE
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ README.md
+|  Ôö£ÔöÇÔöÇ emoji-regex/
+|  |  Ôö£ÔöÇÔöÇ es2015/
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ LICENSE-MIT.txt
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  Ôö£ÔöÇÔöÇ README.md
+|  |  ÔööÔöÇÔöÇ text.js
+|  Ôö£ÔöÇÔöÇ escalade/
+|  |  Ôö£ÔöÇÔöÇ dist/
+|  |  Ôö£ÔöÇÔöÇ index.d.mts
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ license
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  Ôö£ÔöÇÔöÇ readme.md
+|  |  ÔööÔöÇÔöÇ sync/
+|  Ôö£ÔöÇÔöÇ get-caller-file/
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ index.js.map
+|  |  Ôö£ÔöÇÔöÇ LICENSE.md
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ README.md
+|  Ôö£ÔöÇÔöÇ has-flag/
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ license
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ readme.md
+|  Ôö£ÔöÇÔöÇ is-fullwidth-code-point/
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ license
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ readme.md
+|  Ôö£ÔöÇÔöÇ require-directory/
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ LICENSE
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ README.markdown
+|  Ôö£ÔöÇÔöÇ rxjs/
+|  |  Ôö£ÔöÇÔöÇ ajax/
+|  |  Ôö£ÔöÇÔöÇ CHANGELOG.md
+|  |  Ôö£ÔöÇÔöÇ CODE_OF_CONDUCT.md
+|  |  Ôö£ÔöÇÔöÇ dist/
+|  |  Ôö£ÔöÇÔöÇ fetch/
+|  |  Ôö£ÔöÇÔöÇ LICENSE.txt
+|  |  Ôö£ÔöÇÔöÇ operators/
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  Ôö£ÔöÇÔöÇ README.md
+|  |  Ôö£ÔöÇÔöÇ src/
+|  |  Ôö£ÔöÇÔöÇ testing/
+|  |  Ôö£ÔöÇÔöÇ tsconfig.json
+|  |  ÔööÔöÇÔöÇ webSocket/
+|  Ôö£ÔöÇÔöÇ shell-quote/
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ LICENSE
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  Ôö£ÔöÇÔöÇ parse.js
+|  |  Ôö£ÔöÇÔöÇ print.py
+|  |  Ôö£ÔöÇÔöÇ quote.js
+|  |  Ôö£ÔöÇÔöÇ README.md
+|  |  Ôö£ÔöÇÔöÇ security.md
+|  |  ÔööÔöÇÔöÇ test/
+|  Ôö£ÔöÇÔöÇ string-width/
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ license
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ readme.md
+|  Ôö£ÔöÇÔöÇ strip-ansi/
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ license
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ readme.md
+|  Ôö£ÔöÇÔöÇ supports-color/
+|  |  Ôö£ÔöÇÔöÇ browser.js
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ license
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ readme.md
+|  Ôö£ÔöÇÔöÇ tree-kill/
+|  |  Ôö£ÔöÇÔöÇ cli.js
+|  |  Ôö£ÔöÇÔöÇ index.d.ts
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ LICENSE
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ README.md
+|  Ôö£ÔöÇÔöÇ tslib/
+|  |  Ôö£ÔöÇÔöÇ CopyrightNotice.txt
+|  |  Ôö£ÔöÇÔöÇ LICENSE.txt
+|  |  Ôö£ÔöÇÔöÇ modules/
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  Ôö£ÔöÇÔöÇ README.md
+|  |  Ôö£ÔöÇÔöÇ SECURITY.md
+|  |  Ôö£ÔöÇÔöÇ tslib.d.ts
+|  |  Ôö£ÔöÇÔöÇ tslib.es6.html
+|  |  Ôö£ÔöÇÔöÇ tslib.es6.js
+|  |  Ôö£ÔöÇÔöÇ tslib.es6.mjs
+|  |  Ôö£ÔöÇÔöÇ tslib.html
+|  |  ÔööÔöÇÔöÇ tslib.js
+|  Ôö£ÔöÇÔöÇ wrap-ansi/
+|  |  Ôö£ÔöÇÔöÇ index.js
+|  |  Ôö£ÔöÇÔöÇ license
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ readme.md
+|  Ôö£ÔöÇÔöÇ y18n/
+|  |  Ôö£ÔöÇÔöÇ build/
+|  |  Ôö£ÔöÇÔöÇ CHANGELOG.md
+|  |  Ôö£ÔöÇÔöÇ index.mjs
+|  |  Ôö£ÔöÇÔöÇ LICENSE
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  ÔööÔöÇÔöÇ README.md
+|  Ôö£ÔöÇÔöÇ yargs/
+|  |  Ôö£ÔöÇÔöÇ browser.d.ts
+|  |  Ôö£ÔöÇÔöÇ browser.mjs
+|  |  Ôö£ÔöÇÔöÇ build/
+|  |  Ôö£ÔöÇÔöÇ helpers/
+|  |  Ôö£ÔöÇÔöÇ index.cjs
+|  |  Ôö£ÔöÇÔöÇ index.mjs
+|  |  Ôö£ÔöÇÔöÇ lib/
+|  |  Ôö£ÔöÇÔöÇ LICENSE
+|  |  Ôö£ÔöÇÔöÇ locales/
+|  |  Ôö£ÔöÇÔöÇ package.json
+|  |  Ôö£ÔöÇÔöÇ README.md
+|  |  Ôö£ÔöÇÔöÇ yargs
+|  |  ÔööÔöÇÔöÇ yargs.mjs
+|  ÔööÔöÇÔöÇ yargs-parser/
+|     Ôö£ÔöÇÔöÇ browser.js
+|     Ôö£ÔöÇÔöÇ build/
+|     Ôö£ÔöÇÔöÇ CHANGELOG.md
+|     Ôö£ÔöÇÔöÇ LICENSE.txt
+|     Ôö£ÔöÇÔöÇ package.json
+|     ÔööÔöÇÔöÇ README.md
+Ôö£ÔöÇÔöÇ package-lock.json
+Ôö£ÔöÇÔöÇ package.json
+Ôö£ÔöÇÔöÇ package.zip
+Ôö£ÔöÇÔöÇ README.md
+ÔööÔöÇÔöÇ struktur.txt
+
+directory: 211 file: 160
+
+
+
+[2K[1G
