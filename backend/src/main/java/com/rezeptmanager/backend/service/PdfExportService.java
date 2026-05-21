@@ -4,12 +4,10 @@ import com.rezeptmanager.backend.model.Recipe;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.stereotype.Service;
 
-import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,67 +15,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static com.rezeptmanager.backend.config.PdfConfig.*;
 @Service
 public class PdfExportService {
 
-    /*
-     * =========================================================
-     * PDF-LAYOUT
-     * =========================================================
-     */
+    private static final float CONTENT_TOP = PAGE_SIZE.getHeight() - HEADER_HEIGHT - 20f;
 
-    private static final PDRectangle PAGE_SIZE = PDRectangle.A4;
-    private static final float MARGIN = 50f;
-    private static final float HEADER_HEIGHT = 52f;
-    private static final float CONTENT_TOP = PAGE_SIZE.getHeight() - MARGIN - HEADER_HEIGHT;
     private static final float CONTENT_BOTTOM = MARGIN;
 
-    /*
-     * =========================================================
-     * ABSTÄNDE / TYPOGRAFIE
-     * =========================================================
-     */
-
-    private static final float SECTION_TITLE_SPACING = 28f;
-    private static final float SECTION_AFTER_TITLE_OFFSET = 18f;
-    private static final float DEFAULT_VERTICAL_SPACER = 10f;
-
-    private static final float BODY_FONT_SIZE = 11f;
-    private static final float BODY_LEADING = 14f;
-    private static final float SECTION_TITLE_FONT_SIZE = 13f;
-    private static final float HEADER_TITLE_FONT_SIZE = 18f;
-
-    /*
-     * =========================================================
-     * BILD-LAYOUT
-     * =========================================================
-     */
-
-    private static final float IMAGE_MAX_WIDTH = 300f;
-    private static final float IMAGE_MAX_HEIGHT = 180f;
-    private static final float IMAGE_BLOCK_SPACING = 14f;
-
-    /*
-     * =========================================================
-     * FARBEN
-     * =========================================================
-     */
-
-    private static final Color COLOR_HEADER_BG = new Color(245, 246, 248);
-    private static final Color COLOR_LINE = new Color(220, 224, 230);
-    private static final Color COLOR_TEXT = new Color(30, 30, 30);
-    private static final Color COLOR_SUBTEXT = new Color(90, 90, 90);
-
-    /*
-     * =========================================================
-     * DATEI-PFADE
-     * =========================================================
-     */
-
-    private static final String UPLOADS_DIR = "uploads";
-    private static final String FALLBACK_CLASSPATH = "/pdf/fallback-recipe.jpg";
-
-    /*
+   /*
      * =========================================================
      * ÖFFENTLICHE API
      * =========================================================
@@ -91,6 +37,7 @@ public class PdfExportService {
      * - Zutaten
      * - Beschreibung
      */
+
     public byte[] exportRecipeToPdf(Recipe recipe) {
         try (PDDocument document = new PDDocument()) {
             String recipeTitle = safeTitle(recipe);
