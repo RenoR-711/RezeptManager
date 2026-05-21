@@ -1,6 +1,8 @@
 package com.rezeptmanager.backend.service;
 
 import com.rezeptmanager.backend.exception.ImageStorageException;
+import com.rezeptmanager.backend.model.Recipe;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -57,5 +59,10 @@ public class ImageStorageService {
             case ".jpg", ".jpeg", ".png", ".webp" -> ext;
             default -> throw new ImageStorageException("Unsupported image format.");
         };
+    }
+
+    public String storeImage(Recipe recipeId, MultipartFile file) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'storeImage'");
     }
 }

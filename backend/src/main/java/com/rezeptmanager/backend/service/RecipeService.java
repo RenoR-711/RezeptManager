@@ -47,8 +47,8 @@ public class RecipeService {
                 .collect(Collectors.toList());
     }
 
-    public RecipeResponseDto findById(Recipe recipe) {
-        return RecipeMapper.toResponseDto(findEntityById(recipe));
+    public RecipeResponseDto findById(Long id) {
+        return RecipeMapper.toResponseDto(findEntityById(id));
     }
 
     /*
@@ -71,8 +71,8 @@ public class RecipeService {
      * ---------------------------------------------------------
      */
 
-    public RecipeResponseDto update(Recipe recipe, RecipeRequestDto dto) {
-        Recipe existingRecipe = findEntityById(recipe);
+    public RecipeResponseDto update(Long id, RecipeRequestDto dto) {
+        Recipe existingRecipe = findEntityById(id);
 
         RecipeMapper.applyToEntity(dto, existingRecipe);
         existingRecipe.setCategories(resolveCategories(dto.getCategories()));
@@ -81,7 +81,8 @@ public class RecipeService {
         return RecipeMapper.toResponseDto(savedRecipe);
     }
 
-    public RecipeResponseDto updateImageUrl(Recipe recipe, String imageUrl) {
+    public RecipeResponseDto updateImageUrl(Long id, String imageUrl) {
+        Recipe recipe = findEntityById(id);
         recipe.setImageUrl(imageUrl);
 
         Recipe savedRecipe = recipeRepository.save(recipe);
@@ -94,8 +95,8 @@ public class RecipeService {
      * ---------------------------------------------------------
      */
 
-    public void delete(Recipe recipe) {
-        recipeRepository.delete(recipe);
+    public void delete(Long id) {
+        recipeRepository.delete(findEntityById(id));
     }
 
     /*
@@ -104,12 +105,12 @@ public class RecipeService {
      * ---------------------------------------------------------
      */
 
-    public ResponseEntity<byte[]> exportPdf(Recipe recipe) {
-        byte[] pdf = pdfExportService.exportRecipeToPdf(recipe);
+    public ResponseEntity<byte[]> exportPdf(Long id) {
+        byte[] pdf = pdfExportService.exportRecipeToPdf(id);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + recipe.getTitle() + ".pdf\"")
+                        "attachment; filename=\"" + findEntityById(id).getTitle() + ".pdf\"")
                 .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
                 .body(pdf);
     }
@@ -120,8 +121,8 @@ public class RecipeService {
      * ---------------------------------------------------------
      */
 
-    private Recipe findEntityById(Recipe recipe) {
-        return recipeRepository.findById(recipe.getId())
+    private Recipe findEntityById(Long id) {
+        return recipeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Rezept nicht gefunden."));

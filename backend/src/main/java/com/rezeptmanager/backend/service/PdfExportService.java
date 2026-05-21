@@ -40,7 +40,7 @@ public class PdfExportService {
 
     public byte[] exportRecipeToPdf(Recipe recipe) {
         try (PDDocument document = new PDDocument()) {
-            String recipeTitle = safeTitle(recipe.getId());
+            String recipeTitle = safeTitle(recipe);
             PageContext pageContext = createNewPage(document, recipeTitle);
 
             pageContext = drawRecipeImage(document, pageContext, recipe);
