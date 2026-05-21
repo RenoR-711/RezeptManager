@@ -106,11 +106,12 @@ public class RecipeService {
      */
 
     public ResponseEntity<byte[]> exportPdf(Long id) {
-        byte[] pdf = pdfExportService.exportRecipeToPdf(id);
+        Recipe recipe = findEntityById(id);
+        byte[] pdf = pdfExportService.exportRecipeToPdf(recipe);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + findEntityById(id).getTitle() + ".pdf\"")
+                        "attachment; filename=\"" + recipe.getTitle() + ".pdf\"")
                 .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
                 .body(pdf);
     }
