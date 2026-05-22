@@ -67,6 +67,7 @@ function normalizeRecipe(recipe) {
         title: recipe?.title ?? "",
         description: recipe?.description ?? "",
         // ingredients: recipe?.ingredients ?? "",  //wird überschrieben
+        instructions: recipe?.instructions ?? "",
         categories: recipe?.categories ?? [],
         imageUrl: recipe?.imageUrl ?? "",
         ingredients: Array.isArray(recipe?.ingredients) ? recipe.ingredients : [],

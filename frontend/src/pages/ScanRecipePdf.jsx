@@ -96,6 +96,8 @@ export default function ScanRecipePdf() {
     try {
       const payload = buildRecipePayload(recipe);
 
+      console.log("CREATE PAYLOAD", JSON.stringify(payload, null, 2));
+
       const response = await fetch(`${API_BASE}/api/recipes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

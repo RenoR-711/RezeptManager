@@ -4,7 +4,7 @@ import { CATEGORIES } from "../data/categories";
 import ImageUploadField from "./ImageUploadField";
 
 /* -------------------------------------------------------------
-   Helper
+   Hilfsfunktionen
 ------------------------------------------------------------- */
 
 function getCategoryLabel(category) {

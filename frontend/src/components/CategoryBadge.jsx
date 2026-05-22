@@ -1,4 +1,14 @@
 import PropTypes from "prop-types";
+/**
+ * -------------------------------------------------------------
+ * CategoryBadge
+ * -------------------------------------------------------------
+ * Zeigt einen Badge für eine Kategorie an.
+ *
+ * @param {string} label - Der Anzeigename der Kategorie
+ * @param {string} color - Die Hintergrundfarbe des Badges
+ * @param {function} onClick - Die Funktion, die aufgerufen wird, wenn der Badge geklickt wird
+ */
 
 export default function CategoryBadge({ label, color, onClick }) {
     return (

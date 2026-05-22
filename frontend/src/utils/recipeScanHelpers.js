@@ -98,6 +98,7 @@ export function createRecipeFromScanResult(data) {
   return {
     title: data?.title ?? "",
     description: data?.description ?? "",
+    instructions: data?.instructions ?? "",
     ingredientsRows: buildIngredientRows(data?.ingredients),
     categories: [],
     imageUrl: data?.imageUrl ?? "",
@@ -115,8 +116,9 @@ export function buildRecipePayload(recipe) {
   return {
     title: recipe?.title?.trim() ?? "",
     description: recipe?.description?.trim() ?? "",
+    instructions: recipe?.instructions?.trim() || recipe?.description?.trim() || "",
     ingredients: serializeIngredients(recipe?.ingredientsRows),
-    categories: (recipe?.categories ?? []).map((name) => ({ name })),
+    categories: recipe?.categories ?? [],
     imageUrl: recipe?.imageUrl?.trim() ?? "",
   };
 }

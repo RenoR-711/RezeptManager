@@ -1,4 +1,13 @@
 import PropTypes from "prop-types";
+/**
+ * -------------------------------------------------------------
+ * <RecipeMeta></RecipeMeta>
+ * -------------------------------------------------------------
+ * Zeigt metadaten für ein Rezept an.
+ *
+ * @param {string} label - Der Anzeigename der Metadaten
+ * @param {string} value - Der Wert der Metadaten
+ */
 
 export default function RecipeMeta({ label, value }) {
     const displayValue =

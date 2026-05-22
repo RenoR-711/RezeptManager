@@ -19,6 +19,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import RecipeForm from "../components/RecipeForm";
 import {
+    EMPTY_RECIPE_FORM,
     mapRecipeToForm,
     buildPayloadFromForm,
 } from "../utils/recipeFormMapper";
@@ -51,10 +52,11 @@ export default function EditRecipe() {
     const [error, setError] = useState("");
 
     // Formular-State (UI)
-    const [form, setForm] = useState({
+    const [form, setForm] = useState(EMPTY_RECIPE_FORM || {
         title: "",
         description: "",
-        ingredients: [],
+        ingredients: "",
+        instructions: "",
         categories: [],
         difficultyLevel: "EASY",
         prepTimeMinutes: "",

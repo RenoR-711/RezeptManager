@@ -172,6 +172,7 @@ public class ScanService {
         recipe.setTitle(trimToNull(parsed.getTitle()));
         recipe.setIngredients(trimToNull(parsed.getIngredients()));
         recipe.setDescription(trimToNull(parsed.getDescription()));
+        recipe.setInstructions(trimToNull(parsed.getInstructions()));
         recipe.setRawText(trimToNull(parsed.getRawText()));
         recipe.setSourceFile(sourceFile);
 

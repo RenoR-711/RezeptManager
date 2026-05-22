@@ -96,6 +96,7 @@ RecipeForm.propTypes = {
         title: PropTypes.string,
         ingredients: PropTypes.string,
         description: PropTypes.string,
+        instructions: PropTypes.string,
         categories: PropTypes.arrayOf(PropTypes.string),
         difficultyLevel: PropTypes.string,
         prepTimeMinutes: PropTypes.oneOfType([

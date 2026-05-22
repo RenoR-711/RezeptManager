@@ -6,7 +6,11 @@ import { createEmptyIngredientRow } from "../utils/recipeScanHelpers";
 /* -------------------------------------------------------------
    Hilfsfunktionen
 ------------------------------------------------------------- */
-
+/**
+ * Gibt die Bezeichnung einer Kategorie zurück.
+ * @param {*} category 
+ * @returns 
+ */
 function getCategoryLabel(category) {
     return typeof category === "string" ? category : category?.name ?? "";
 }
@@ -151,7 +155,7 @@ export default function ScannedRecipeForm({
                     />
                 </label>
 
-{/* 
+
                 <label
                     className="form-label"
                     htmlFor="scan-description"
@@ -166,7 +170,7 @@ export default function ScannedRecipeForm({
                         rows={15}
                         disabled={saving}
                     />
-                </label> */}
+                </label>
             </section>
 
             {onImageUpload ? (
@@ -286,6 +290,7 @@ ScannedRecipeForm.propTypes = {
     recipe: PropTypes.shape({
         title: PropTypes.string,
         description: PropTypes.string,
+        instructions: PropTypes.string,
         ingredientsRows: PropTypes.arrayOf(
             PropTypes.shape({
                 amount: PropTypes.string,

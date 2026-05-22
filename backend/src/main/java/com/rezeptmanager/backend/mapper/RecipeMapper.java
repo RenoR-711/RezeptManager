@@ -72,7 +72,6 @@ public final class RecipeMapper {
         recipe.setFats(dto.getFats());
 
         recipe.setRating(dto.getRating());
-        recipe.setCategories(mapCategoryNames(dto.getCategories()));
     }
 
     /*
@@ -138,17 +137,6 @@ public final class RecipeMapper {
             case "HARD", "SCHWIERIG" -> DifficultyLevel.HARD;
             default -> null;
         };
-    }
-
-    private static Set<Category> mapCategoryNames(List<String> names) {
-        if (names == null) {
-            return Set.of();
-        }
-
-        return names.stream()
-                .filter(name -> name != null && !name.isBlank())
-                .map(name -> new Category(name.trim()))
-                .collect(Collectors.toSet());
     }
 
     private static List<RecipeResponseDto.CategoryDto> mapCategories(Set<Category> categories) {

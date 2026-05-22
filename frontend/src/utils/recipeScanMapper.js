@@ -15,6 +15,7 @@ export function mapScanResultToForm(data = {}) {
   return {
     title: data?.title ?? "",
     description: data?.description ?? "",
+    instructions: data?.instructions ?? "",
     ingredientsRows: buildIngredientRows(data?.ingredients),
     categories: [],
     imageUrl: data?.imageUrl ?? "",
@@ -31,8 +32,9 @@ export function buildPayloadFromScanForm(form = {}) {
   return {
     title: form?.title?.trim() ?? "",
     description: form?.description?.trim() ?? "",
+    instructions: form?.instructions?.trim() || form?.description?.trim() || "",
     ingredients: serializeIngredients(form?.ingredientsRows),
-    categories: (form?.categories ?? []).map((name) => ({ name })),
+    categories: form?.categories ?? [],
     imageUrl: form?.imageUrl?.trim() ?? "",
   };
 }
