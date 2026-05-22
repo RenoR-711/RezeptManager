@@ -4,7 +4,6 @@ import com.rezeptmanager.backend.dto.RecipeRequestDto;
 import com.rezeptmanager.backend.dto.RecipeResponseDto;
 import com.rezeptmanager.backend.service.RecipeService;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -73,16 +72,5 @@ public class RecipeController {
         @DeleteMapping("/{id}")
         public void delete(@PathVariable Long id) {
                 recipeService.delete(id);
-        }
-
-        /*
-         * ---------------------------------------------------------
-         * PDF Export
-         * ---------------------------------------------------------
-         */
-
-        @GetMapping("/{id}/pdf")
-        public ResponseEntity<byte[]> exportPdf(@PathVariable Long id) {
-                return recipeService.exportPdf(id);
         }
 }

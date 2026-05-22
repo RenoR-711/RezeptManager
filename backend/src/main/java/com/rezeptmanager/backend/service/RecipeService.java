@@ -48,7 +48,7 @@ public class RecipeService {
     }
 
     public RecipeResponseDto findById(Long id) {
-        return RecipeMapper.toResponseDto(findEntityById(id));
+        return RecipeMapper.toResponseDto(findRecipeById(id));
     }
 
     /*
@@ -72,7 +72,7 @@ public class RecipeService {
      */
 
     public RecipeResponseDto update(Long id, RecipeRequestDto dto) {
-        Recipe existingRecipe = findEntityById(id);
+        Recipe existingRecipe = findRecipeById(id);
 
         RecipeMapper.applyToEntity(dto, existingRecipe);
         existingRecipe.setCategories(resolveCategories(dto.getCategories()));
@@ -82,7 +82,7 @@ public class RecipeService {
     }
 
     public RecipeResponseDto updateImageUrl(Long id, String imageUrl) {
-        Recipe recipe = findEntityById(id);
+        Recipe recipe = findRecipeById(id);
         recipe.setImageUrl(imageUrl);
 
         Recipe savedRecipe = recipeRepository.save(recipe);
@@ -96,7 +96,7 @@ public class RecipeService {
      */
 
     public void delete(Long id) {
-        recipeRepository.delete(findEntityById(id));
+        recipeRepository.delete(findRecipeById(id));
     }
 
     /*
@@ -105,8 +105,8 @@ public class RecipeService {
      * ---------------------------------------------------------
      */
 
-    public ResponseEntity<byte[]> exportPdf(Long id) {
-        Recipe recipe = findEntityById(id);
+    public ResponseEntity<byte[]> exportRecipeToPdf(Long id) {
+        Recipe recipe = findRecipeById(id);
         byte[] pdf = pdfExportService.exportRecipeToPdf(recipe);
 
         return ResponseEntity.ok()
@@ -122,7 +122,7 @@ public class RecipeService {
      * ---------------------------------------------------------
      */
 
-    private Recipe findEntityById(Long id) {
+    private Recipe findRecipeById(Long id) {
         return recipeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
