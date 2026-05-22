@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import { CATEGORIES } from "../data/categories";
+import CategoryBadge from "../components/CategoryBadge";
 
 const API_BASE = "http://localhost:8081";
 const PLACEHOLDER_BASE = "https://placehold.co/800x500?text=";
@@ -105,35 +106,6 @@ function buildCategoryColorMap(categories) {
 /* -------------------------------------------------------------
    UI Components
 ------------------------------------------------------------- */
-
-function CategoryBadge({ label, color, onClick }) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            aria-label={`Nach Kategorie filtern: ${label}`}
-            style={{
-                background: color || "#888",
-                color: "#fff",
-                padding: "4px 10px",
-                borderRadius: 999,
-                border: "none",
-                fontSize: "0.75rem",
-                lineHeight: 1.6,
-                cursor: "pointer",
-            }}
-        >
-            {label}
-        </button>
-    );
-}
-
-CategoryBadge.propTypes = {
-    label: PropTypes.string.isRequired,
-    color: PropTypes.string,
-    onClick: PropTypes.func.isRequired,
-};
-
 function Meta({ label, value }) {
     const displayValue =
         value === null || value === undefined || value === "" ? "—" : String(value);

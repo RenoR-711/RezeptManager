@@ -16,11 +16,12 @@ export default function IngredientEditor({
 }) {
   return (
     <section className="form-section">
-      <h2>Zutaten</h2>
+      <h3>Zutaten</h3>
 
-      <label className="form-label">
-        <span>Zutaten</span>
+      <label className="form-label" htmlFor="ingredients">
+        {/* <span>Zutaten</span> */}
         <textarea
+          id="ingredients"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={`z. B.

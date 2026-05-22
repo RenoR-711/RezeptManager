@@ -41,11 +41,11 @@ export default function RecipeFormFields({
             : CATEGORIES;
 
         return (source ?? [])
-            .map((cat) => ({
-                name: getCategoryLabel(cat).trim(),
-                color: typeof cat === "object" ? cat?.color : undefined,
+            .map((category) => ({
+                name: getCategoryLabel(category).trim(),
+                color: typeof category === "object" ? category?.color : undefined,
             }))
-            .filter((cat) => cat.name);
+            .filter((category) => category.name);
     }, [categoryOptions]);
 
     function updateField(field, value) {
@@ -55,14 +55,14 @@ export default function RecipeFormFields({
         }));
     }
 
-    function toggleCategory(name) {
+    function toggleCategory(categoryName) {
         const currentCategories = Array.isArray(form?.categories)
             ? form.categories
             : [];
 
-        const nextCategories = currentCategories.includes(name)
-            ? currentCategories.filter((category) => category !== name)
-            : [...currentCategories, name];
+        const nextCategories = currentCategories.includes(categoryName)
+            ? currentCategories.filter((category) => category !== categoryName)
+            : [...currentCategories, categoryName];
 
         updateField("categories", nextCategories);
     }
@@ -74,11 +74,27 @@ export default function RecipeFormFields({
         <div className="recipe-main">
             {/* Basisdaten */}
             <section className="form-section">
-                <h3>Basisdaten</h3>
+                {/* <h3>Basisdaten</h3> */}
 
-                <label className="form-label">
-                    <span>Titel</span>
+                {/* Bild */}
+                {showImageUpload && (
+                    <section className="form-section" style={{ marginBottom: "1.5rem" }}>
+                        <h3>Bild</h3>
+
+                        <ImageUploadField
+                            imageFile={imageFile}
+                            previewUrl={imagePreviewUrl}
+                            title={form?.title ?? ""}
+                            onChange={onImageChange}
+                            disabled={disabled}
+                        />
+                    </section>
+                )}
+
+                <label className="form-label" htmlFor="recipe-title">
+                    <h3>Titel</h3>
                     <input
+                        id="recipe-title"
                         type="text"
                         value={toInputValue(form?.title)}
                         onChange={(event) => updateField("title", event.target.value)}
@@ -88,18 +104,42 @@ export default function RecipeFormFields({
                     />
                 </label>
 
-                <label className="form-label"
+
+                {/* Spezialbereich: Zutaten */}
+                {ingredientsSection}
+
+                {/* Zubereitung */}
+                <section className="form-section">
+                    <h3>Zubereitung</h3>
+
+                    <label className="form-label" htmlFor="recipe-instructions">
+                        <span>Anleitung</span>
+                        <textarea
+                            id="recipe-instructions"
+                            value={toInputValue(form?.instructions)}
+                            onChange={(event) =>
+                                updateField("instructions", event.target.value)
+                            }
+                            placeholder="Zubereitungsschritte eingeben"
+                            rows={15}
+                            disabled={disabled}
+                        />
+                    </label>
+                </section>
+
+                {/* <label className="form-label"
                     htmlFor="recipe-description">
                     <span>Beschreibung</span>
                     <textarea
+                        id="recipe-description"
                         value={toInputValue(form?.description)}
                         onChange={(event) =>
                             updateField("description", event.target.value)
                         }
-                        rows={15}
+                        rows={8}
                         disabled={disabled}
                     />
-                </label>
+                </label> */}
             </section>
 
             {/* Kategorien */}
@@ -278,41 +318,9 @@ export default function RecipeFormFields({
                 </section>
             )}
 
-            {/* Spezialbereich: Zutaten */}
-            {ingredientsSection}
 
-            {/* Zubereitung */}
-            <section className="form-section">
-                <h3>Zubereitung</h3>
-
-                <label className="form-label">
-                    <span>Anleitung</span>
-                    <textarea
-                        value={toInputValue(form?.instructions)}
-                        onChange={(event) =>
-                            updateField("instructions", event.target.value)
-                        }
-                        placeholder="Zubereitungsschritte eingeben"
-                        rows={8}
-                        disabled={disabled}
-                    />
-                </label>
-            </section>
-
-            {/* Bild */}
-            {showImageUpload && (
-                <section className="form-section">
-                    <h3>Bild</h3>
-
-                    <ImageUploadField
-                        imageFile={imageFile}
-                        previewUrl={imagePreviewUrl}
-                        title={form?.title ?? ""}
-                        onChange={onImageChange}
-                        disabled={disabled}
-                    />
-                </section>
-            )}
+            {/* Spezialbereich: Weitere Felder */}
+            {/* Hier können weitere Abschnitte wie Nährwerte, Notizen, etc. eingebunden werden */}
         </div>
     );
 }

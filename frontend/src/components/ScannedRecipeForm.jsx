@@ -151,7 +151,7 @@ export default function ScannedRecipeForm({
                     />
                 </label>
 
-
+{/* 
                 <label
                     className="form-label"
                     htmlFor="scan-description"
@@ -166,7 +166,7 @@ export default function ScannedRecipeForm({
                         rows={15}
                         disabled={saving}
                     />
-                </label>
+                </label> */}
             </section>
 
             {onImageUpload ? (
@@ -234,7 +234,7 @@ export default function ScannedRecipeForm({
                     ))}
                 </div>
             </section>
-            
+
             {/* Kategorien */}
             <section className="form-section">
                 <h3>Kategorien</h3>
@@ -269,7 +269,7 @@ export default function ScannedRecipeForm({
                 </div>
             </section>
 
-            <div 
+            <div
                 style={{ marginTop: 8 }}>
                 <button
                     className="save"

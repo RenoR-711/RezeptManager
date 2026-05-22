@@ -28,21 +28,16 @@ export default function RecipeForm({
     imagePreviewUrl = "",
     disabled = false,
     categoryOptions,
-    showMetaFields = true,
-    showImageUpload = true,
 }) {
-    const ingredientsSection = (
-        <IngredientEditor
-            value={form?.ingredients ?? ""}
-            onChange={(value) =>
-                setForm((prev) => ({
-                    ...prev,
-                    ingredients: value,
-                }))
-            }
-            disabled={disabled}
-        />
-    );
+
+    const isDisabled = disabled || saving;
+
+    function updateIngredients(value) {
+        setForm((prev) => ({
+            ...prev,
+            ingredients: value,
+        }));
+    }
 
     /* ---------------------------------------------------------
    Render
@@ -57,12 +52,18 @@ export default function RecipeForm({
                 onImageChange={onImageChange}
                 disabled={disabled || saving}
                 categoryOptions={categoryOptions}
-                ingredientsSection={ingredientsSection}
-                showMetaFields={showMetaFields}
-                showImageUpload={showImageUpload}
+                ingredientsSection={
+                        <IngredientEditor
+                            ingredients={form?.ingredients ?? ""}
+                            onChange={updateIngredients}
+                            disabled={isDisabled}
+                        />
+                }
+                showMetaFields={true}
+                showImageUpload={true}
             />
 
-            {error ? <p className="form-error">{error}</p> : null}
+            {error ? <p role="alert" className="form-error">{error}</p> : null}
 
             <div className="form-actions">
                 {onCancel && (
@@ -91,7 +92,47 @@ export default function RecipeForm({
 ------------------------------------------------------------- */
 
 RecipeForm.propTypes = {
-    form: PropTypes.object.isRequired,
+    form: PropTypes.shape({
+        title: PropTypes.string,
+        ingredients: PropTypes.string,
+        description: PropTypes.string,
+        categories: PropTypes.arrayOf(PropTypes.string),
+        difficultyLevel: PropTypes.string,
+        prepTimeMinutes: PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.number,
+        ]),
+        cookTimeMinutes: PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.number,
+        ]),
+        servings: PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.number,
+        ]),
+        calories: PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.number,
+        ]),
+        protein: PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.number,
+        ]),
+        carbohydrates: PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.number,
+        ]),
+        fats: PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.number,
+        ]),
+        rating: PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.number,
+        ]),
+        instructions: PropTypes.string,
+        imageUrl: PropTypes.string,
+    }).isRequired,
     setForm: PropTypes.func.isRequired,
     onSubmit: PropTypes.func.isRequired,
     submitLabel: PropTypes.string,
@@ -99,11 +140,19 @@ RecipeForm.propTypes = {
     error: PropTypes.string,
     onCancel: PropTypes.func,
     cancelLabel: PropTypes.string,
-    imageFile: PropTypes.object,
+    imageFile: PropTypes.shape({
+        name: PropTypes.string,
+    }),
     onImageChange: PropTypes.func,
     imagePreviewUrl: PropTypes.string,
     disabled: PropTypes.bool,
-    categoryOptions: PropTypes.array,
-    showMetaFields: PropTypes.bool,
-    showImageUpload: PropTypes.bool,
+    categoryOptions: PropTypes.arrayOf(
+        PropTypes.oneOfType([
+            PropTypes.string,
+            PropTypes.shape({
+                name: PropTypes.string,
+                color: PropTypes.string,
+            }),
+        ])
+    ),
 };

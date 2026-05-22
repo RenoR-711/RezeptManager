@@ -74,10 +74,11 @@ public class ParsedRecipe {
     /**
      * Convenience constructor for simple scan results.
      */
-    public ParsedRecipe(String title, String ingredients, String description) {
+    public ParsedRecipe(String title, String ingredients, String description, String instructions) {
         this.title = title;
         this.ingredients = ingredients;
         this.description = description;
+        this.instructions = instructions;
     }
 
 }
