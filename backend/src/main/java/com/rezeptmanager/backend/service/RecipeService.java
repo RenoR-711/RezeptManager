@@ -17,7 +17,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 @Service
 public class RecipeService {
 
@@ -137,7 +136,7 @@ public class RecipeService {
         return categoryNames.stream()
                 .filter(name -> name != null && !name.isBlank())
                 .map(String::trim)
-                .map(name -> categoryRepository.findByName(name)
+                .map(name -> categoryRepository.findByCategoryName(name)
                         .orElseGet(() -> categoryRepository.save(new Category(name))))
                 .collect(Collectors.toSet());
     }

@@ -157,7 +157,7 @@ public final class RecipeMapper {
         }
 
         return categories.stream()
-                .map(category -> new RecipeResponseDto.CategoryDto(category.getName()))
+                .map(category -> new RecipeResponseDto.CategoryDto(category.getCategoryName()))
                 .collect(Collectors.toList());
     }
 }
