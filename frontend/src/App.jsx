@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
-import Recipes from "./pages/Recipes";
+import Recipes from "./pages/RecipesDetail";
 import RecipeList from "./pages/RecipeList";
 import NewRecipe from "./pages/NewRecipe";
 import EditRecipe from "./pages/EditRecipe";
