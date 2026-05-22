@@ -11,7 +11,7 @@ const API_BASE = "http://localhost:8081";
    Main Page Component
 ------------------------------------------------------------- */
 
-export default function Recipes() {
+export default function RecipesDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
 

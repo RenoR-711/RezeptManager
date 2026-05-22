@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
-import Recipes from "./pages/RecipesDetail";
+import RecipeDetail from "./pages/RecipesDetail";
 import RecipeList from "./pages/RecipeList";
 import NewRecipe from "./pages/NewRecipe";
 import EditRecipe from "./pages/EditRecipe";
@@ -35,7 +35,7 @@ export default function App() {
 
         <Route path="/recipes/new" element={<NewRecipe />} />
         <Route path="/recipes/edit/:id" element={<EditRecipe />} />
-        <Route path="/recipes/:id" element={<Recipes />} />
+        <Route path="/recipes/:id" element={<RecipeDetail />} />
 
         {/* ================= SCAN ================= */}
         <Route path="/scan/file" element={<ScanRecipePdf />} />
