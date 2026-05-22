@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import { CATEGORIES } from "../data/categories";
 import CategoryBadge from "../components/CategoryBadge";
+import RecipeMeta from "../components/RecipeMeta";
 
 const API_BASE = "http://localhost:8081";
 const PLACEHOLDER_BASE = "https://placehold.co/800x500?text=";
@@ -102,26 +103,6 @@ function buildCategoryColorMap(categories) {
 
     return map;
 }
-
-/* -------------------------------------------------------------
-   UI Components
-------------------------------------------------------------- */
-function Meta({ label, value }) {
-    const displayValue =
-        value === null || value === undefined || value === "" ? "—" : String(value);
-
-    return (
-        <div className="recipe-meta-card">
-            <div className="recipe-meta-label">{label}</div>
-            <div className="recipe-meta-value">{displayValue}</div>
-        </div>
-    );
-}
-
-Meta.propTypes = {
-    label: PropTypes.string.isRequired,
-    value: PropTypes.any,
-};
 
 /* -------------------------------------------------------------
    Main Page Component
@@ -388,20 +369,20 @@ export default function Recipes() {
                 </div>
             ) : null}
 
-            {/* Metadaten */}
+            {/* RecipeMeta daten */}
             <div className="recipe-section">
                 <h3 className="recipe-section-title">Details</h3>
 
                 <div className="recipe-meta-grid" >
-                    <Meta label="Schwierigkeit" value={recipe.difficultyLevel} />
-                    <Meta label="Zubereitungszeit (Min.)" value={recipe.prepTimeMinutes} />
-                    <Meta label="Kochzeit (Min.)" value={recipe.cookTimeMinutes} />
-                    <Meta label="Portionen" value={recipe.servings} />
-                    <Meta label="Kalorien" value={recipe.calories} />
-                    <Meta label="Protein (g)" value={recipe.protein} />
-                    <Meta label="Kohlenhydrate (g)" value={recipe.carbohydrates} />
-                    <Meta label="Fett (g)" value={recipe.fats} />
-                    <Meta label="Bewertung" value={recipe.rating} />
+                    <RecipeMeta label="Schwierigkeit" value={recipe.difficultyLevel} />
+                    <RecipeMeta label="Zubereitungszeit (Min.)" value={recipe.prepTimeMinutes} />
+                    <RecipeMeta label="Kochzeit (Min.)" value={recipe.cookTimeMinutes} />
+                    <RecipeMeta label="Portionen" value={recipe.servings} />
+                    <RecipeMeta label="Kalorien" value={recipe.calories} />
+                    <RecipeMeta label="Protein (g)" value={recipe.protein} />
+                    <RecipeMeta label="Kohlenhydrate (g)" value={recipe.carbohydrates} />
+                    <RecipeMeta label="Fett (g)" value={recipe.fats} />
+                    <RecipeMeta label="Bewertung" value={recipe.rating} />
                 </div>
             </div>
 
