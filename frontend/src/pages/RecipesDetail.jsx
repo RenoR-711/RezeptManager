@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import PropTypes from "prop-types";
 import { CATEGORIES } from "../data/categories";
 import CategoryBadge from "../components/CategoryBadge";
 import RecipeMeta from "../components/RecipeMeta";

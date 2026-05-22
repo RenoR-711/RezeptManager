@@ -11,7 +11,7 @@ public class IngredientParserService {
     // ------------------------------------------------------------
     public ParsedRecipe parse(String text) {
         if (text == null || text.isBlank()) {
-            return new ParsedRecipe("Erkanntes Rezept", "", "");
+            return new ParsedRecipe("Erkanntes Rezept", "", "", "");
         }
 
         String title = extractTitle(text);
@@ -21,7 +21,8 @@ public class IngredientParserService {
         return new ParsedRecipe(
                 title.trim(),
                 ingredients.trim(),
-                description.trim());
+                description.trim(),
+                ""); // instructions
     }
 
     // ------------------------------------------------------------
@@ -33,7 +34,7 @@ public class IngredientParserService {
                 return line.trim();
             }
         }
-        return "Rezept";
+        return "Erkanntes Rezept";
     }
 
     // ------------------------------------------------------------
@@ -47,35 +48,45 @@ public class IngredientParserService {
         String[] ingredientLines = ingredientsBlock.split("\\R+");
         String[] allLines = text.split("\\R+");
 
-        StringBuilder desc = new StringBuilder();
+        StringBuilder description = new StringBuilder();
 
-        outer: for (String line : allLines) {
+        for (String line : allLines) {
             String trimmed = line.trim();
-            for (String ingr : ingredientLines) {
-                if (trimmed.equalsIgnoreCase(ingr.trim())) {
-                    // Diese Zeile gehört zu den Zutaten → überspringen
-                    continue outer;
+
+            boolean isIngredient = false;
+
+            for (String ingredient : ingredientLines) {
+                if (trimmed.equalsIgnoreCase(ingredient.trim())) {
+                    isIngredient = true;
+                    break;
                 }
             }
-            desc.append(trimmed).append("\n");
+
+            boolean shouldSkip = trimmed.isBlank()
+                    || isIngredientHeading(trimmed.toLowerCase())
+                    || isIngredient;
+
+            if (!shouldSkip) {
+                description.append(trimmed).append("\n");
+            }
         }
 
-        return desc.toString().trim();
+        return description.toString().trim();
     }
 
     // ------------------------------------------------------------
     // Fallback: reine Mustererkennung für Zutaten
     // ------------------------------------------------------------
     private String extractIngredientsFallback(String text) {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder ingredients = new StringBuilder();
 
         for (String line : text.split("\\R+")) {
             if (looksLikeIngredient(line)) {
-                sb.append(line.trim()).append("\n");
+                ingredients.append(line.trim()).append("\n");
             }
         }
 
-        return sb.toString();
+        return ingredients.toString().trim();
     }
 
     // ------------------------------------------------------------
@@ -85,19 +96,27 @@ public class IngredientParserService {
         if (line == null)
             return false;
 
-        String l = line.toLowerCase().trim();
+        String normalized = line.toLowerCase().trim();
 
         // Leere oder extrem lange Zeilen → keine Zutaten
-        if (l.isEmpty() || l.length() > 60)
+        if (normalized.isEmpty() || normalized.length() > 60)
             return false;
 
         // Kriterien für Zutaten:
-        return l.matches("^[0-9].*") || // beginnt mit einer Zahl (200 g ...)
-                l.matches("^[0-9/ ]+.*") || // Bruchzahlen (1/2, 1 / 4)
-                l.startsWith("prise") ||
-                l.startsWith("messerspitze") ||
-                l.startsWith("schuss") ||
-                l.startsWith("etwas") ||
-                l.split(" ").length <= 3; // kurze Einträge ("Tomaten", "Butter", "2 Eier")
+        return normalized.matches("^[0-9].*") || // beginnt mit einer Zahl (200 g ...)
+                normalized.matches("^[0-9/ ]+.*") || // Bruchzahlen (1/2, 1 / 4)
+                normalized.startsWith("prise") ||
+                normalized.startsWith("messerspitze") ||
+                normalized.startsWith("schuss") ||
+                normalized.startsWith("etwas") ||
+                normalized.split(" ").length <= 3; // kurze Einträge ("Tomaten", "Butter", "2 Eier")
     }
+
+    private boolean isIngredientHeading(String line) {
+        return line.equals("zutaten:") ||
+                line.equals("zutaten") ||
+                line.equals("ingredients:") ||
+                line.equals("ingredients");
+    }
+
 }
