@@ -1,12 +1,12 @@
 package com.rezeptmanager.backend.config;
 
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.springframework.context.annotation.Configuration;
-
 import java.awt.Color;
-
-@Configuration
 public class PdfConfig {
+
+    private PdfConfig() {
+        // Utility class
+    }
 
     /*
      * =========================================================
@@ -63,7 +63,4 @@ public class PdfConfig {
     public static final String UPLOADS_DIR = "uploads";
     public static final String FALLBACK_CLASSPATH = "/pdf/fallback-recipe.jpg";
 
-    private PdfConfig() {
-        // Utility class
-    }
 }
