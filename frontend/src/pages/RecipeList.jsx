@@ -30,10 +30,10 @@ function getCategoryLabel(category) {
  * - Fehlt ein Bild, wird ein Placeholder genutzt
  */
 function getRecipeImageUrl(recipe) {
-    const url = recipe?.imageUrl?.trim();
+    const imageUrl = recipe?.imageUrl ?? "";
 
-    if (url) {
-        return url.startsWith("http") ? url : `${API_BASE}${url}`;
+    if (imageUrl) {
+        return imageUrl.startsWith("http") ? imageUrl : `${API_BASE}${imageUrl}`;
     }
 
     const encodedTitle = encodeURIComponent(recipe?.title || "Rezept");

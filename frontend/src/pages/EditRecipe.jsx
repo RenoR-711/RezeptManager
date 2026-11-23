@@ -19,10 +19,10 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import RecipeForm from "../components/RecipeForm";
 import {
+    buildPayloadFromForm,
     EMPTY_RECIPE_FORM,
     mapRecipeToForm,
-    buildPayloadFromForm,
-} from "../utils/recipeFormMapper";
+    } from "../utils/recipeFormMapper";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8081";
 
