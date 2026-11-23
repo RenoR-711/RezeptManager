@@ -1,7 +1,6 @@
 package com.rezeptmanager.backend.config;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -11,7 +10,7 @@ public class WebConfig implements WebMvcConfigurer {
     private static final String UPLOAD_DIR = "file:uploads/";
 
     @Override
-    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(UPLOAD_DIR);
     }
