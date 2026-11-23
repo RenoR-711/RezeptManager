@@ -7,7 +7,7 @@ import { CATEGORIES } from "../data/categories";
    Constants
 ============================================================= */
 
-const API_BASE = "http://localhost:8081";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8081";
 const RECIPES_API = `${API_BASE}/api/recipes`;
 const FALLBACK_CATEGORY = "Ohne Kategorie";
 

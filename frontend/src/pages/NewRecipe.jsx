@@ -8,6 +8,7 @@ import {
 } from "../utils/recipeFormMapper";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8081";
+const FALLBACK_IMAGE_URL = "/images/placeholder.png";
 
 /**
  * -------------------------------------------------------------
@@ -45,7 +46,7 @@ export default function NewRecipe() {
         try {
             setSaving(true);
 
-            let imageUrl = form.imageUrl || "";
+            let imageUrl = form.imageUrl || FALLBACK_IMAGE_URL;
 
             if (form.imageFile) {
                 const imageData = new FormData();
