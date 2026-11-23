@@ -72,13 +72,6 @@ function normalizeIngredientsToText(ingredients) {
     .join("\n");
 }
 
-/**
- * Kategorien für das Backend ins Objektformat umwandeln.
- */
-function mapCategoryNameToObject(name) {
-  return { name };
-}
-
 /* -------------------------------------------------------------
    API -> Form
 ------------------------------------------------------------- */
@@ -159,6 +152,7 @@ export function buildPayloadFromForm(form, extra = {}) {
 
     imageUrl: form.imageUrl?.trim() ?? extra.imageUrl ?? "",
 
-    categories: normalizedCategories.map(mapCategoryNameToObject),
+    // Spring Boot erwartet List<String>
+    categories: normalizedCategories,
   };
 }

@@ -22,7 +22,7 @@ import {
     buildPayloadFromForm,
     EMPTY_RECIPE_FORM,
     mapRecipeToForm,
-    } from "../utils/recipeFormMapper";
+} from "../utils/recipeFormMapper";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8081";
 
@@ -139,10 +139,11 @@ export default function EditRecipe() {
             setSaving(true);
 
             let imageUrl = recipe?.imageUrl || "";
-
+            // Nur hochladen, wenn ein neues Bild ausgewählt wurde
             if (imageFile) {
                 const imageData = new FormData();
                 imageData.append("file", imageFile);
+                // Bild hochladen
 
                 const uploadResponse = await fetch(`${API_BASE}/api/images/recipes/${id}`, {
                     method: "POST",
@@ -150,11 +151,11 @@ export default function EditRecipe() {
                 });
 
                 if (!uploadResponse.ok) {
-                    const text = await uploadResponse.text().catch(() => "");
+                    const text = await uploadResponse.text();
                     throw new Error(text || `Bild konnte nicht hochgeladen werden (HTTP ${uploadResponse.status})`);
                 }
 
-                const uploadResult = await uploadResponse.json().catch(() => null);
+                const uploadResult = await uploadResponse.json();
                 imageUrl =
                     uploadResult?.imageUrl ||
                     uploadResult?.url ||
@@ -168,7 +169,7 @@ export default function EditRecipe() {
             });
 
             console.log("UPDATE PAYLOAD", payload);
-            
+
             const response = await fetch(`${API_BASE}/api/recipes/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -176,8 +177,17 @@ export default function EditRecipe() {
             });
 
             if (!response.ok) {
-                const text = await response.text().catch(() => "");
-                throw new Error(text || `Fehler beim Speichern (HTTP ${response.status})`);
+                const errorText = await response.text();
+
+                console.error("Fehler beim Aktualisieren:", {
+                    status: response.status,
+                    payload,
+                    errorText,
+                });
+
+                throw new Error(
+                    errorText || `Fehler beim Speichern (HTTP ${response.status})`
+                );
             }
 
             const updated = await response.json().catch(() => null);

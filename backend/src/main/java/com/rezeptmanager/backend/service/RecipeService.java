@@ -17,12 +17,16 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class RecipeService {
 
     private final RecipeRepository recipeRepository;
     private final CategoryRepository categoryRepository;
     private final PdfExportService pdfExportService;
+    private static final Logger log = LoggerFactory.getLogger(RecipeService.class);
 
     public RecipeService(
             RecipeRepository recipeRepository,
@@ -71,6 +75,9 @@ public class RecipeService {
      */
 
     public RecipeResponseDto update(Long id, RecipeRequestDto dto) {
+        log.info("Updating recipe with ID: {}", id);
+        log.info("Categories: {}", dto.getCategories());
+
         Recipe existingRecipe = findRecipeById(id);
 
         RecipeMapper.applyToEntity(dto, existingRecipe);
